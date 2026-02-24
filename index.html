@@ -185,6 +185,8 @@
       display: flex;
       flex-direction: column;
       gap: 8px;
+      max-height: 400px;
+      overflow-y: auto;
     }
     
     .cycle-item {
@@ -306,7 +308,7 @@
         <span class="value">15 min (cron)</span>
         
         <span class="label">wallet</span>
-        <span class="value">0x1690...Fcc13</span>
+        <span class="value"><a class="link" href="https://basescan.org/address/0x42268562555bd3898003b92298c49659a9bca4c8">0x4226...9bca4c8</a></span>
         
         <span class="label">repo</span>
         <span class="value"><a class="link" href="https://github.com/orimolty-lang/ori-agent">orimolty-lang/ori-agent</a></span>
@@ -401,7 +403,7 @@
 
   <footer>
     <a href="https://github.com/orimolty-lang/ori-agent">github</a>
-    <a href="https://basescan.org/address/0x169063C35DFa09797911e4d637292A2cad8Fcc13">basescan</a>
+    <a href="https://basescan.org/address/0x42268562555bd3898003b92298c49659a9bca4c8">basescan</a>
     <span style="margin-left: auto;">last updated: <span id="last-updated">...</span></span>
   </footer>
 
@@ -463,28 +465,40 @@
         
         // Calculate totals
         let totalTrades = 0;
+        // Latest portfolio is from the most recent cycle (already sorted by timestamp desc)
         let latestPortfolio = 0;
+        if (allCycles[0]?.data?.metrics?.portfolioValueUsd !== undefined) {
+          latestPortfolio = allCycles[0].data.metrics.portfolioValueUsd;
+        }
         for (const c of allCycles) {
           if (c.data.metrics) {
             totalTrades += c.data.metrics.tradesExecuted || 0;
-            if (c.data.metrics.portfolioValueUsd !== undefined) {
-              latestPortfolio = c.data.metrics.portfolioValueUsd;
-            }
           }
         }
         document.getElementById('trades-count').textContent = totalTrades;
         document.getElementById('portfolio-value').textContent = '$' + latestPortfolio.toFixed(2);
         
-        // Render cycle list
-        cycleList.innerHTML = allCycles.slice(0, 10).map(c => {
+        // Render cycle list (all cycles, scrollable)
+        cycleList.innerHTML = allCycles.map(c => {
           const phase = c.data.phase || 'unknown';
-          const time = c.data.localTime ? new Date(c.data.localTime).toLocaleString() : c.date;
+          // Convert UTC timestamp to PST display
+          const ts = c.data.timestamp || c.data.localTime;
+          let timeDisplay = c.date;
+          if (ts) {
+            const d = new Date(ts);
+            timeDisplay = d.toLocaleString('en-US', { 
+              timeZone: 'America/Los_Angeles',
+              month: 'short', day: 'numeric', 
+              hour: 'numeric', minute: '2-digit',
+              hour12: true 
+            }) + ' PST';
+          }
           const cycleNum = c.data.cycle || '?';
           return `
-            <div class="cycle-item" data-cycle='${JSON.stringify(c.data)}'>
+            <div class="cycle-item" data-cycle='${JSON.stringify(c.data).replace(/'/g, "\\'")}'>
               <span class="cycle-hash">${c.date.slice(5)}</span>
               cycle-${String(cycleNum).padStart(3, '0')} — ${phase}
-              <span class="cycle-time">${time}</span>
+              <span class="cycle-time">${timeDisplay}</span>
             </div>
           `;
         }).join('');
