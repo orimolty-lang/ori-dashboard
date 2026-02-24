@@ -4,6 +4,27 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Ori Agent</title>
+  <script>
+    // Simple client-side password gate (not secure, just deters casual visitors)
+    (function() {
+      const PASS_HASH = 'b7a6919bd49e4a9c5b2390d09477e0226d1b8f9a03045271707f87828b8a8ef0'; // sha256 of password
+      const stored = localStorage.getItem('ori_auth');
+      if (stored === PASS_HASH) return; // already authed
+      
+      const pass = prompt('🍊 ori agent — enter password:');
+      if (!pass) { document.body.innerHTML = '<h1 style="color:#c9d1d9;font-family:monospace;text-align:center;margin-top:40vh">access denied</h1>'; return; }
+      
+      // Simple sha256 (browser built-in)
+      crypto.subtle.digest('SHA-256', new TextEncoder().encode(pass)).then(hash => {
+        const hex = Array.from(new Uint8Array(hash)).map(b => b.toString(16).padStart(2,'0')).join('');
+        if (hex === PASS_HASH) {
+          localStorage.setItem('ori_auth', PASS_HASH);
+        } else {
+          document.body.innerHTML = '<h1 style="color:#f85149;font-family:monospace;text-align:center;margin-top:40vh">wrong password</h1>';
+        }
+      });
+    })();
+  </script>
   <style>
     :root {
       --bg: #0d1117;
@@ -272,7 +293,7 @@
         <span class="value">Clawdbot Gateway</span>
         
         <span class="label">interval</span>
-        <span class="value">45 min (cron)</span>
+        <span class="value">15 min (cron)</span>
         
         <span class="label">wallet</span>
         <span class="value">0x1690...Fcc13</span>
