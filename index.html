@@ -257,6 +257,78 @@
       color: var(--text-muted);
       font-style: italic;
     }
+    
+    /* Chart styles */
+    .chart-container {
+      position: relative;
+      width: 100%;
+      height: 200px;
+    }
+    
+    .chart-canvas {
+      width: 100%;
+      height: 100%;
+    }
+    
+    .chart-stats {
+      display: flex;
+      justify-content: space-between;
+      margin-top: 12px;
+      padding-top: 12px;
+      border-top: 1px solid var(--border);
+      font-size: 0.85rem;
+    }
+    
+    .chart-stat {
+      text-align: center;
+    }
+    
+    .chart-stat-value {
+      font-size: 1.1rem;
+      font-weight: 600;
+    }
+    
+    .chart-stat-label {
+      color: var(--text-muted);
+      font-size: 0.75rem;
+    }
+    
+    /* Trade history styles */
+    .trade-list {
+      max-height: 300px;
+      overflow-y: auto;
+    }
+    
+    .trade-item {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      padding: 8px 12px;
+      background: rgba(0,0,0,0.2);
+      border-radius: 4px;
+      margin-bottom: 8px;
+      font-size: 0.85rem;
+    }
+    
+    .trade-info {
+      display: flex;
+      flex-direction: column;
+      gap: 2px;
+    }
+    
+    .trade-token {
+      font-weight: 600;
+    }
+    
+    .trade-date {
+      color: var(--text-muted);
+      font-size: 0.75rem;
+    }
+    
+    .trade-pnl {
+      font-weight: 600;
+      font-size: 1rem;
+    }
   </style>
 </head>
 <body>
@@ -266,6 +338,7 @@
     <span style="color: var(--green); font-size: 0.9rem;">alive</span>
     <nav class="nav">
       <a href="#identity">identity</a>
+      <a href="#performance">performance</a>
       <a href="#cycles">cycles</a>
       <a href="https://github.com/orimolty-lang/ori-agent" target="_blank">github</a>
     </nav>
@@ -319,6 +392,58 @@
     </div>
   </div>
 
+  <!-- Performance Chart Card -->
+  <div class="card" id="performance">
+    <div class="card-header">
+      <div class="dots">
+        <span class="dot red"></span>
+        <span class="dot yellow"></span>
+        <span class="dot green"></span>
+      </div>
+      ori@base ~ portfolio --chart
+    </div>
+    <div class="card-body">
+      <div class="chart-container">
+        <canvas id="portfolio-chart" class="chart-canvas"></canvas>
+      </div>
+      <div class="chart-stats">
+        <div class="chart-stat">
+          <div class="chart-stat-value" id="chart-start">$0.00</div>
+          <div class="chart-stat-label">starting</div>
+        </div>
+        <div class="chart-stat">
+          <div class="chart-stat-value" id="chart-current">$0.00</div>
+          <div class="chart-stat-label">current</div>
+        </div>
+        <div class="chart-stat">
+          <div class="chart-stat-value" id="chart-pnl">$0.00</div>
+          <div class="chart-stat-label">P&L</div>
+        </div>
+        <div class="chart-stat">
+          <div class="chart-stat-value" id="chart-pnl-pct">0%</div>
+          <div class="chart-stat-label">return</div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Trade History Card -->
+  <div class="card" id="trades">
+    <div class="card-header">
+      <div class="dots">
+        <span class="dot red"></span>
+        <span class="dot yellow"></span>
+        <span class="dot green"></span>
+      </div>
+      ori@base ~ trades --history
+    </div>
+    <div class="card-body">
+      <div class="trade-list" id="trade-list">
+        <div class="loading">Loading trade history...</div>
+      </div>
+    </div>
+  </div>
+
   <!-- Stats Card -->
   <div class="card">
     <div class="card-header">
@@ -347,6 +472,12 @@
         <span id="portfolio-value">$0.00</span>
       </div>
       <div class="progress-bar"><div class="fill" id="portfolio-bar" style="width: 0%"></div></div>
+      
+      <div class="stats-row" style="margin-top: 12px;">
+        <span>goal: $100/month</span>
+        <span id="goal-progress">0%</span>
+      </div>
+      <div class="progress-bar"><div class="fill" id="goal-bar" style="width: 0%; background: var(--yellow);"></div></div>
     </div>
   </div>
 
@@ -411,9 +542,139 @@
     const REPO_OWNER = 'orimolty-lang';
     const REPO_NAME = 'ori-agent';
     const CYCLES_PATH = 'cycles';
+    
+    // Chart drawing function
+    function drawChart(canvas, dataPoints) {
+      const ctx = canvas.getContext('2d');
+      const dpr = window.devicePixelRatio || 1;
+      const rect = canvas.getBoundingClientRect();
+      
+      canvas.width = rect.width * dpr;
+      canvas.height = rect.height * dpr;
+      ctx.scale(dpr, dpr);
+      
+      const width = rect.width;
+      const height = rect.height;
+      const padding = { top: 20, right: 20, bottom: 30, left: 50 };
+      const chartWidth = width - padding.left - padding.right;
+      const chartHeight = height - padding.top - padding.bottom;
+      
+      if (dataPoints.length < 2) {
+        ctx.fillStyle = '#8b949e';
+        ctx.font = '14px monospace';
+        ctx.textAlign = 'center';
+        ctx.fillText('Collecting data...', width / 2, height / 2);
+        return;
+      }
+      
+      // Find min/max values
+      const values = dataPoints.map(d => d.value);
+      const minVal = Math.min(...values) * 0.9;
+      const maxVal = Math.max(...values) * 1.1;
+      const valueRange = maxVal - minVal || 1;
+      
+      // Clear
+      ctx.fillStyle = '#161b22';
+      ctx.fillRect(0, 0, width, height);
+      
+      // Draw grid lines
+      ctx.strokeStyle = '#30363d';
+      ctx.lineWidth = 1;
+      for (let i = 0; i <= 4; i++) {
+        const y = padding.top + (chartHeight / 4) * i;
+        ctx.beginPath();
+        ctx.moveTo(padding.left, y);
+        ctx.lineTo(width - padding.right, y);
+        ctx.stroke();
+        
+        // Y-axis labels
+        const val = maxVal - (valueRange / 4) * i;
+        ctx.fillStyle = '#8b949e';
+        ctx.font = '10px monospace';
+        ctx.textAlign = 'right';
+        ctx.fillText('$' + val.toFixed(2), padding.left - 5, y + 3);
+      }
+      
+      // Draw line
+      ctx.strokeStyle = '#3fb950';
+      ctx.lineWidth = 2;
+      ctx.beginPath();
+      
+      dataPoints.forEach((point, i) => {
+        const x = padding.left + (i / (dataPoints.length - 1)) * chartWidth;
+        const y = padding.top + chartHeight - ((point.value - minVal) / valueRange) * chartHeight;
+        
+        if (i === 0) ctx.moveTo(x, y);
+        else ctx.lineTo(x, y);
+      });
+      ctx.stroke();
+      
+      // Draw gradient fill
+      const gradient = ctx.createLinearGradient(0, padding.top, 0, height - padding.bottom);
+      gradient.addColorStop(0, 'rgba(63, 185, 80, 0.3)');
+      gradient.addColorStop(1, 'rgba(63, 185, 80, 0)');
+      
+      ctx.fillStyle = gradient;
+      ctx.beginPath();
+      dataPoints.forEach((point, i) => {
+        const x = padding.left + (i / (dataPoints.length - 1)) * chartWidth;
+        const y = padding.top + chartHeight - ((point.value - minVal) / valueRange) * chartHeight;
+        if (i === 0) ctx.moveTo(x, y);
+        else ctx.lineTo(x, y);
+      });
+      ctx.lineTo(padding.left + chartWidth, padding.top + chartHeight);
+      ctx.lineTo(padding.left, padding.top + chartHeight);
+      ctx.closePath();
+      ctx.fill();
+      
+      // Draw dots
+      ctx.fillStyle = '#3fb950';
+      dataPoints.forEach((point, i) => {
+        const x = padding.left + (i / (dataPoints.length - 1)) * chartWidth;
+        const y = padding.top + chartHeight - ((point.value - minVal) / valueRange) * chartHeight;
+        ctx.beginPath();
+        ctx.arc(x, y, 3, 0, Math.PI * 2);
+        ctx.fill();
+      });
+      
+      // X-axis labels (first, middle, last)
+      ctx.fillStyle = '#8b949e';
+      ctx.font = '10px monospace';
+      ctx.textAlign = 'center';
+      
+      if (dataPoints.length > 0) {
+        ctx.fillText(dataPoints[0].label, padding.left, height - 10);
+        if (dataPoints.length > 2) {
+          const midIdx = Math.floor(dataPoints.length / 2);
+          ctx.fillText(dataPoints[midIdx].label, width / 2, height - 10);
+        }
+        ctx.fillText(dataPoints[dataPoints.length - 1].label, width - padding.right, height - 10);
+      }
+    }
+
+    // Known trade history (extracted from cycles)
+    const KNOWN_TRADES = [
+      {
+        token: 'BOTCOIN',
+        entry: { value: 4.50, date: '2026-02-24', cycle: 28 },
+        exit: { value: 3.93, date: '2026-02-24', cycle: 32 },
+        pnl: -0.57,
+        pnlPct: -12.7,
+        reason: 'Stop loss triggered'
+      },
+      {
+        token: 'PERKOS',
+        entry: { value: 2.93, date: '2026-02-24', cycle: 33 },
+        exit: { value: 2.43, date: '2026-02-24', cycle: 43 },
+        pnl: -0.50,
+        pnlPct: -17.1,
+        reason: 'Stop loss triggered'
+      }
+    ];
 
     async function fetchCycles() {
       const cycleList = document.getElementById('cycle-list');
+      const tradeList = document.getElementById('trade-list');
       const allCycles = [];
       
       try {
@@ -426,7 +687,7 @@
         const dateFolders = folders.filter(f => f.type === 'dir').sort((a, b) => b.name.localeCompare(a.name));
         
         // Fetch cycles from each folder (most recent first)
-        for (const folder of dateFolders.slice(0, 5)) { // Last 5 days
+        for (const folder of dateFolders.slice(0, 10)) { // Last 10 days
           const cyclesRes = await fetch(`https://api.github.com/repos/${REPO_OWNER}/${REPO_NAME}/contents/${CYCLES_PATH}/${folder.name}`);
           if (!cyclesRes.ok) continue;
           const files = await cyclesRes.json();
@@ -461,11 +722,10 @@
         // Update cycle count
         document.getElementById('cycle-count').textContent = allCycles.length;
         document.getElementById('total-cycles').textContent = allCycles.length;
-        document.getElementById('uptime-bar').style.width = Math.min(allCycles.length * 5, 100) + '%';
+        document.getElementById('uptime-bar').style.width = Math.min(allCycles.length * 2, 100) + '%';
         
         // Calculate totals
         let totalTrades = 0;
-        // Latest portfolio is from the most recent cycle (already sorted by timestamp desc)
         let latestPortfolio = 0;
         if (allCycles[0]?.data?.metrics?.portfolioValueUsd !== undefined) {
           latestPortfolio = allCycles[0].data.metrics.portfolioValueUsd;
@@ -478,10 +738,65 @@
         document.getElementById('trades-count').textContent = totalTrades;
         document.getElementById('portfolio-value').textContent = '$' + latestPortfolio.toFixed(2);
         
+        // Goal progress (based on $5 initial, need $100 profit for month)
+        const initialCapital = 5.01;
+        const profit = latestPortfolio - initialCapital;
+        const goalPct = Math.max(0, (profit / 100) * 100).toFixed(1);
+        document.getElementById('goal-progress').textContent = goalPct + '%';
+        document.getElementById('goal-bar').style.width = Math.min(goalPct, 100) + '%';
+        
+        // Build portfolio chart data
+        const chartData = [];
+        const sortedForChart = [...allCycles].sort((a, b) => new Date(a.data.timestamp) - new Date(b.data.timestamp));
+        for (const c of sortedForChart) {
+          if (c.data.metrics?.portfolioValueUsd !== undefined) {
+            const ts = new Date(c.data.timestamp);
+            chartData.push({
+              value: c.data.metrics.portfolioValueUsd,
+              label: ts.toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit', hour12: true })
+            });
+          }
+        }
+        
+        // Draw chart
+        const canvas = document.getElementById('portfolio-chart');
+        if (canvas && chartData.length > 0) {
+          drawChart(canvas, chartData);
+          
+          // Update chart stats
+          const startVal = chartData[0].value;
+          const endVal = chartData[chartData.length - 1].value;
+          const pnl = endVal - startVal;
+          const pnlPct = ((pnl / startVal) * 100).toFixed(1);
+          
+          document.getElementById('chart-start').textContent = '$' + startVal.toFixed(2);
+          document.getElementById('chart-current').textContent = '$' + endVal.toFixed(2);
+          document.getElementById('chart-pnl').textContent = (pnl >= 0 ? '+' : '') + '$' + pnl.toFixed(2);
+          document.getElementById('chart-pnl').className = 'chart-stat-value ' + (pnl >= 0 ? 'green' : 'red');
+          document.getElementById('chart-pnl-pct').textContent = (pnl >= 0 ? '+' : '') + pnlPct + '%';
+          document.getElementById('chart-pnl-pct').className = 'chart-stat-value ' + (pnl >= 0 ? 'green' : 'red');
+        }
+        
+        // Render trade history
+        if (KNOWN_TRADES.length === 0) {
+          tradeList.innerHTML = '<div class="empty-state">No trades yet</div>';
+        } else {
+          tradeList.innerHTML = KNOWN_TRADES.map(t => `
+            <div class="trade-item">
+              <div class="trade-info">
+                <span class="trade-token">${t.token}</span>
+                <span class="trade-date">${t.entry.date} → ${t.exit.date} | ${t.reason}</span>
+              </div>
+              <div class="trade-pnl ${t.pnl >= 0 ? 'green' : 'red'}">
+                ${t.pnl >= 0 ? '+' : ''}$${t.pnl.toFixed(2)} (${t.pnlPct >= 0 ? '+' : ''}${t.pnlPct}%)
+              </div>
+            </div>
+          `).join('');
+        }
+        
         // Render cycle list (all cycles, scrollable)
         cycleList.innerHTML = allCycles.map(c => {
           const phase = c.data.phase || 'unknown';
-          // Convert UTC timestamp to PST display
           const ts = c.data.timestamp || c.data.localTime;
           let timeDisplay = c.date;
           if (ts) {
@@ -526,6 +841,12 @@
         cycleList.innerHTML = `<div class="empty-state" style="color: var(--red);">Error loading cycles: ${err.message}</div>`;
       }
     }
+    
+    // Handle window resize for chart
+    window.addEventListener('resize', () => {
+      // Re-fetch to redraw chart
+      fetchCycles();
+    });
     
     // Load cycles on page load
     document.addEventListener('DOMContentLoaded', fetchCycles);
