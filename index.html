@@ -600,6 +600,50 @@
       color: var(--ink-light);
       font-family: 'JetBrains Mono', monospace;
     }
+    .funding-progress {
+      margin-top: 12px;
+      padding-top: 12px;
+      border-top: 1px dashed var(--border);
+    }
+    .funding-progress-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 8px;
+    }
+    .funding-collected {
+      font-family: 'JetBrains Mono', monospace;
+      font-size: 1.1rem;
+      font-weight: 600;
+      color: var(--success);
+    }
+    .funding-goal {
+      font-size: 0.75rem;
+      color: var(--ink-light);
+    }
+    .funding-progress-bar {
+      height: 6px;
+      background: var(--border);
+      border-radius: 3px;
+      overflow: hidden;
+      margin-bottom: 8px;
+    }
+    .funding-progress-fill {
+      height: 100%;
+      background: linear-gradient(90deg, var(--success), var(--accent));
+      border-radius: 3px;
+      transition: width 0.5s ease;
+    }
+    .funding-stats {
+      display: flex;
+      justify-content: space-between;
+      font-size: 0.7rem;
+      color: var(--ink-faint);
+    }
+    .funding-stat-value {
+      font-family: 'JetBrains Mono', monospace;
+      color: var(--ink-light);
+    }
 
     /* Chart */
     .chart-wrap {
@@ -1556,6 +1600,19 @@
             <span class="funding-rate" id="funding-rate">--% APR</span>
             <span class="funding-expected" id="funding-expected">~$0.00</span>
           </div>
+          <div class="funding-progress" id="funding-progress">
+            <div class="funding-progress-header">
+              <span class="funding-collected" id="funding-collected">$0.00</span>
+              <span class="funding-goal">of $2.00 monthly goal</span>
+            </div>
+            <div class="funding-progress-bar">
+              <div class="funding-progress-fill" id="funding-progress-fill" style="width: 0%"></div>
+            </div>
+            <div class="funding-stats">
+              <span><span class="funding-stat-value" id="funding-payments-count">0</span> payments</span>
+              <span>since <span class="funding-stat-value" id="funding-start-date">--</span></span>
+            </div>
+          </div>
         </div>
         <div class="chart-wrap">
           <canvas id="portfolio-chart"></canvas>
@@ -2414,6 +2471,49 @@
         }
         updateFundingTimer();
         setInterval(updateFundingTimer, 1000);
+        
+        // Load funding payments data
+        loadFundingPayments();
+      }
+    }
+    
+    // Funding Payments
+    let FUNDING_PAYMENTS = null;
+    async function loadFundingPayments() {
+      try {
+        const res = await fetch(DATA_BASE + '/funding-payments.json?t=' + Date.now());
+        if (res.ok) {
+          FUNDING_PAYMENTS = await res.json();
+          updateFundingProgress();
+        }
+      } catch (e) {
+        console.log('Funding payments not available');
+      }
+    }
+    
+    function updateFundingProgress() {
+      if (!FUNDING_PAYMENTS) return;
+      
+      const collected = FUNDING_PAYMENTS.summary?.totalCollected || 0;
+      const paymentCount = FUNDING_PAYMENTS.summary?.paymentCount || 0;
+      const startDate = FUNDING_PAYMENTS.summary?.startDate;
+      
+      // Update collected amount
+      document.getElementById('funding-collected').textContent = '$' + collected.toFixed(4);
+      
+      // Update progress bar (goal is $2/month)
+      const goalPercent = Math.min((collected / 2.0) * 100, 100);
+      document.getElementById('funding-progress-fill').style.width = goalPercent + '%';
+      
+      // Update stats
+      document.getElementById('funding-payments-count').textContent = paymentCount;
+      
+      if (startDate) {
+        const d = new Date(startDate);
+        document.getElementById('funding-start-date').textContent = 
+          (d.getMonth() + 1) + '/' + d.getDate();
+      } else {
+        document.getElementById('funding-start-date').textContent = 'today';
       }
     }
     
