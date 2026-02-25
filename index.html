@@ -902,6 +902,154 @@
       word-break: break-word;
     }
 
+    /* Signals */
+    .signals-accuracy {
+      font-size: 0.75rem;
+      font-family: 'JetBrains Mono', monospace;
+      font-weight: 500;
+      color: var(--success);
+      margin-left: 8px;
+    }
+    
+    .signals-summary {
+      display: flex;
+      gap: 24px;
+      margin-bottom: 16px;
+      padding-bottom: 12px;
+      border-bottom: 1px solid var(--ink-faint);
+    }
+    
+    .signals-stat {
+      display: flex;
+      flex-direction: column;
+      gap: 2px;
+    }
+    
+    .signals-stat-value {
+      font-family: 'JetBrains Mono', monospace;
+      font-size: 1.25rem;
+      font-weight: 500;
+      color: var(--ink);
+    }
+    
+    .signals-stat-label {
+      font-size: 0.7rem;
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+      color: var(--ink-light);
+    }
+    
+    .signals-list {
+      display: flex;
+      flex-direction: column;
+      gap: 8px;
+    }
+    
+    .signal-item {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      padding: 10px 12px;
+      background: var(--paper);
+      border: 1px solid var(--ink-faint);
+      border-radius: 6px;
+      transition: border-color 0.2s;
+    }
+    
+    .signal-item:hover {
+      border-color: var(--ink-light);
+    }
+    
+    .signal-item.correct {
+      border-left: 3px solid var(--success);
+    }
+    
+    .signal-item.incorrect {
+      border-left: 3px solid var(--danger);
+    }
+    
+    .signal-item.pending {
+      border-left: 3px solid var(--ink-light);
+    }
+    
+    .signal-main {
+      display: flex;
+      flex-direction: column;
+      gap: 4px;
+    }
+    
+    .signal-token {
+      font-family: 'JetBrains Mono', monospace;
+      font-weight: 500;
+      font-size: 0.9rem;
+      color: var(--ink);
+    }
+    
+    .signal-type {
+      font-size: 0.7rem;
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+      padding: 2px 6px;
+      border-radius: 3px;
+      background: var(--ink-faint);
+      color: var(--ink-light);
+      display: inline-block;
+      width: fit-content;
+    }
+    
+    .signal-type.accumulation {
+      background: rgba(34, 197, 94, 0.15);
+      color: var(--success);
+    }
+    
+    .signal-type.distribution {
+      background: rgba(239, 68, 68, 0.15);
+      color: var(--danger);
+    }
+    
+    .signal-result {
+      display: flex;
+      flex-direction: column;
+      align-items: flex-end;
+      gap: 2px;
+    }
+    
+    .signal-change {
+      font-family: 'JetBrains Mono', monospace;
+      font-weight: 500;
+      font-size: 0.9rem;
+    }
+    
+    .signal-change.positive {
+      color: var(--success);
+    }
+    
+    .signal-change.negative {
+      color: var(--danger);
+    }
+    
+    .signal-change.pending {
+      color: var(--ink-light);
+      font-style: italic;
+    }
+    
+    .signal-date {
+      font-size: 0.7rem;
+      color: var(--ink-light);
+    }
+    
+    .signals-footer {
+      margin-top: 12px;
+      padding-top: 8px;
+      border-top: 1px solid var(--ink-faint);
+    }
+    
+    .signals-note {
+      font-size: 0.7rem;
+      color: var(--ink-light);
+      font-style: italic;
+    }
+    
     /* Journal */
     /* Journal preview (card) */
     .journal-preview {
@@ -1613,6 +1761,7 @@
         <a href="#trades">trades</a>
         <a href="#calendar">calendar</a>
         <a href="#cycles">cycles</a>
+        <a href="#signals">signals</a>
         <a href="https://github.com/orimolty-lang/ori-agent" target="_blank">github ↗</a>
       </nav>
     </header>
@@ -1793,6 +1942,31 @@
         </div>
       </div>
 
+      <!-- Signals Card - Public track record -->
+      <div class="card card-full reveal" id="signals">
+        <div class="card-title"><span class="icon">◈</span> signal tracker <span class="signals-accuracy" id="signals-accuracy"></span></div>
+        <div class="signals-summary" id="signals-summary">
+          <div class="signals-stat">
+            <span class="signals-stat-value" id="signals-total">0</span>
+            <span class="signals-stat-label">signals</span>
+          </div>
+          <div class="signals-stat">
+            <span class="signals-stat-value" id="signals-correct">0</span>
+            <span class="signals-stat-label">correct</span>
+          </div>
+          <div class="signals-stat">
+            <span class="signals-stat-value" id="signals-pending">0</span>
+            <span class="signals-stat-label">pending</span>
+          </div>
+        </div>
+        <div class="signals-list" id="signals-list">
+          <div class="loading">loading signals...</div>
+        </div>
+        <div class="signals-footer">
+          <span class="signals-note">buy:sell ratio methodology • not financial advice</span>
+        </div>
+      </div>
+
       <!-- Journal Card - clickable to open modal -->
       <div class="card card-full reveal journal-card" id="journal-card" onclick="openJournalModal()">
         <div class="card-title"><span class="icon">◐</span> journal <span style="font-size:0.7rem;color:var(--ink-faint);font-family:Inter;font-weight:400;margin-left:8px">click to read →</span></div>
@@ -1907,6 +2081,7 @@
     let TRADES = [];
     let PORTFOLIO = null;
     let CYCLES = [];
+    let SIGNALS = [];
     let LIVE_PRICES = {}; // Cache for live token prices
     
     // Loading splash - 5 second animation
@@ -2255,6 +2430,13 @@
             .sort((a, b) => new Date(b.timestamp) - new Date(a.timestamp))
             .map(data => ({ data }));
         }
+        
+        // Signals
+        const sRes = await fetch(`./data/signals.json?t=${Date.now()}`);
+        if (sRes.ok) {
+          const signalsData = await sRes.json();
+          SIGNALS = signalsData.signals || [];
+        }
       } catch (e) {
         console.warn('Data fetch error:', e);
       }
@@ -2533,6 +2715,71 @@
         // Load funding payments data
         loadFundingPayments();
       }
+      
+      // Render signals
+      renderSignals();
+    }
+    
+    // Signals rendering
+    function renderSignals() {
+      if (!SIGNALS || SIGNALS.length === 0) {
+        document.getElementById('signals-list').innerHTML = '<div class="empty-state">no signals yet</div>';
+        return;
+      }
+      
+      // Calculate stats
+      const total = SIGNALS.length;
+      const checked = SIGNALS.filter(s => s.status === 'checked');
+      const correct = checked.filter(s => s.outcome === 'correct').length;
+      const pending = SIGNALS.filter(s => s.status === 'pending').length;
+      const accuracy = checked.length > 0 ? ((correct / checked.length) * 100).toFixed(0) : 0;
+      
+      // Update summary
+      document.getElementById('signals-total').textContent = total;
+      document.getElementById('signals-correct').textContent = correct;
+      document.getElementById('signals-pending').textContent = pending;
+      
+      if (checked.length > 0) {
+        document.getElementById('signals-accuracy').textContent = `${accuracy}% accuracy`;
+      }
+      
+      // Sort by timestamp descending (newest first)
+      const sortedSignals = [...SIGNALS].sort((a, b) => 
+        new Date(b.logged_at) - new Date(a.logged_at)
+      );
+      
+      // Render list
+      const listEl = document.getElementById('signals-list');
+      listEl.innerHTML = sortedSignals.map(s => {
+        const statusClass = s.status === 'checked' 
+          ? (s.outcome === 'correct' ? 'correct' : 'incorrect')
+          : 'pending';
+        
+        const changeText = s.status === 'checked' && s.price_change_pct !== null
+          ? (s.price_change_pct >= 0 ? '+' : '') + s.price_change_pct.toFixed(2) + '%'
+          : 'pending...';
+        
+        const changeClass = s.status === 'checked'
+          ? (s.price_change_pct >= 0 ? 'positive' : 'negative')
+          : 'pending';
+        
+        const date = new Date(s.logged_at).toLocaleDateString('en-US', {
+          month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit'
+        });
+        
+        return `
+          <div class="signal-item ${statusClass}">
+            <div class="signal-main">
+              <span class="signal-token">${s.token}</span>
+              <span class="signal-type ${s.signal}">${s.signal}</span>
+            </div>
+            <div class="signal-result">
+              <span class="signal-change ${changeClass}">${changeText}</span>
+              <span class="signal-date">${date}</span>
+            </div>
+          </div>
+        `;
+      }).join('');
     }
     
     // Funding Payments
