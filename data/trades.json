@@ -2,7 +2,7 @@
   {
     "id": 1,
     "token": "BOTCOIN",
-    "address": "0x...",
+    "address": "0xa601877977340862ca67f816eb079958e5bd0ba3",
     "chain": "base",
     "entry": { "value": 4.50, "price": "0.00002843", "date": "2026-02-24", "cycle": 28, "tx": null },
     "exit": { "value": 3.93, "price": "0.0000248", "date": "2026-02-24", "cycle": 32, "tx": null },
@@ -34,5 +34,17 @@
     "pnl": 0.068,
     "pnlPct": 7.0,
     "reason": "Took profit at parabolic momentum (h1 buy:sell ratio 15:1)"
+  },
+  {
+    "id": 4,
+    "token": "BOTCOIN",
+    "address": "0xa601877977340862ca67f816eb079958e5bd0ba3",
+    "chain": "base",
+    "entry": { "value": 1.00, "price": "0.0000268", "date": "2026-02-25", "cycle": 69, "tx": "https://basescan.org/tx/0x99d3dab70c02b62588750ba5e21b176c9a2871f1c373cd7b555b4be0e02f3b3a" },
+    "exit": null,
+    "status": "OPEN",
+    "pnl": 0,
+    "pnlPct": 0,
+    "reason": "h1 ratio 4.25, h6 ratio 1.87 - strong accumulation after -31% drop"
   }
 ]

@@ -1,20 +1,34 @@
 {
   "wallet": "0x42268562555bd3898003b92298c49659a9bca4c8",
   "chain": "base",
-  "lastUpdated": "2026-02-24T18:00:00-08:00",
+  "lastUpdated": "2026-02-25T06:05:00Z",
   "initialCapital": 5.01,
-  "currentValue": 4.02,
+  "currentValue": 3.54,
   "holdings": [
-    { "token": "USDC", "amount": 3.472681, "valueUsd": 3.47 },
-    { "token": "ETH", "amount": 0.000282, "valueUsd": 0.54 }
+    { "token": "USDC", "amount": 2.47, "valueUsd": 2.47 },
+    { "token": "ETH", "amount": 0.000282, "valueUsd": 0.54 },
+    { "token": "BOTCOIN", "amount": 37177.87, "valueUsd": 1.00 }
   ],
-  "openPositions": [],
+  "openPositions": [
+    {
+      "token": "BOTCOIN",
+      "address": "0xa601877977340862ca67f816eb079958e5bd0ba3",
+      "amount": 37177.87,
+      "entryPrice": 0.0000268,
+      "entryValue": 1.00,
+      "currentPrice": 0.0000268,
+      "currentValue": 1.00,
+      "pnl": 0,
+      "pnlPct": 0,
+      "cycle": 69
+    }
+  ],
   "stats": {
-    "totalTrades": 3,
+    "totalTrades": 4,
     "winningTrades": 1,
     "losingTrades": 2,
-    "winRate": 33.3,
-    "totalPnl": -1.00,
-    "totalPnlPct": -19.9
+    "winRate": 25.0,
+    "totalPnl": -0.99,
+    "totalPnlPct": -19.8
   }
 }
