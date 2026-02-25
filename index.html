@@ -635,11 +635,39 @@
     }
 
     /* Journal */
+    /* Journal preview (card) */
+    .journal-preview {
+      font-size: 0.9rem;
+      line-height: 1.6;
+      max-height: 80px;
+      overflow: hidden;
+      color: var(--ink-light);
+      position: relative;
+    }
+    
+    .journal-preview::after {
+      content: '';
+      position: absolute;
+      bottom: 0;
+      left: 0;
+      right: 0;
+      height: 40px;
+      background: linear-gradient(transparent, var(--paper));
+      pointer-events: none;
+    }
+    
+    .journal-card {
+      cursor: pointer;
+    }
+    
+    .journal-card:hover {
+      border-color: var(--accent);
+    }
+    
+    /* Journal modal content */
     .journal-content {
       font-size: 0.95rem;
       line-height: 1.8;
-      max-height: 300px;
-      overflow-y: auto;
     }
 
     .journal-content h2 {
@@ -1430,10 +1458,10 @@
         </div>
       </div>
 
-      <!-- Journal Card -->
-      <div class="card card-full reveal">
-        <div class="card-title"><span class="icon">◐</span> journal</div>
-        <div class="journal-content" id="journal-content">
+      <!-- Journal Card - clickable to open modal -->
+      <div class="card card-full reveal journal-card" id="journal-card" onclick="openJournalModal()">
+        <div class="card-title"><span class="icon">◐</span> journal <span style="font-size:0.7rem;color:var(--ink-faint);font-family:Inter;font-weight:400;margin-left:8px">click to read →</span></div>
+        <div class="journal-preview" id="journal-preview">
           <div class="loading">loading journal...</div>
         </div>
       </div>
@@ -1523,6 +1551,23 @@
     </div>
   </div>
 
+  <!-- Journal Modal -->
+  <div class="modal-overlay" id="journal-modal">
+    <div class="modal" style="max-width:640px;">
+      <div class="modal-header">
+        <div class="modal-title">
+          <span class="icon">◐</span> journal
+        </div>
+        <button class="modal-close" onclick="closeJournalModal()">×</button>
+      </div>
+      <div class="modal-body" style="max-height:70vh;overflow-y:auto;">
+        <div class="journal-content" id="journal-content">
+          <div class="loading">loading journal...</div>
+        </div>
+      </div>
+    </div>
+  </div>
+
   <script>
     let TRADES = [];
     let PORTFOLIO = null;
@@ -1544,6 +1589,15 @@
       document.documentElement.setAttribute('data-theme', next);
       localStorage.setItem('ori_theme', next);
       updateThemeIcon(next);
+      // Redraw chart with new theme colors
+      if (CYCLES.length > 0) {
+        const chartData = [...CYCLES].reverse().map(c => ({
+          v: c.data.metrics?.portfolioValueUsd || 0
+        })).filter(d => d.v > 0);
+        if (chartData.length > 0) {
+          drawChart(document.getElementById('portfolio-chart'), chartData);
+        }
+      }
     }
     
     function updateThemeIcon(theme) {
@@ -1664,11 +1718,24 @@
     
     document.querySelectorAll('.reveal').forEach(el => observer.observe(el));
     
-    // Chart
+    // Chart - theme-aware colors
+    function getChartColors() {
+      const isDark = document.documentElement.getAttribute('data-theme') === 'dark';
+      return {
+        bg: isDark ? '#1a1a1a' : '#ffffff',
+        grid: isDark ? '#2a2a2a' : '#f0ece7',
+        label: isDark ? '#666666' : '#999999',
+        line: isDark ? '#ff8c5a' : '#ff6b35',
+        gradientTop: isDark ? 'rgba(255, 140, 90, 0.2)' : 'rgba(255, 107, 53, 0.15)',
+        gradientBottom: isDark ? 'rgba(255, 140, 90, 0)' : 'rgba(255, 107, 53, 0)'
+      };
+    }
+    
     function drawChart(canvas, data) {
       const ctx = canvas.getContext('2d');
       const dpr = window.devicePixelRatio || 1;
       const rect = canvas.getBoundingClientRect();
+      const colors = getChartColors();
       
       canvas.width = rect.width * dpr;
       canvas.height = rect.height * dpr;
@@ -1681,7 +1748,7 @@
       const ch = h - pad.t - pad.b;
       
       if (data.length < 2) {
-        ctx.fillStyle = '#999';
+        ctx.fillStyle = colors.label;
         ctx.font = '14px Inter';
         ctx.textAlign = 'center';
         ctx.fillText('collecting data...', w/2, h/2);
@@ -1693,12 +1760,12 @@
       const max = Math.max(...vals) * 1.05;
       const range = max - min || 1;
       
-      // Background
-      ctx.fillStyle = '#fff';
+      // Background - theme aware
+      ctx.fillStyle = colors.bg;
       ctx.fillRect(0, 0, w, h);
       
-      // Grid lines
-      ctx.strokeStyle = '#f0ece7';
+      // Grid lines - theme aware
+      ctx.strokeStyle = colors.grid;
       ctx.lineWidth = 1;
       for (let i = 0; i <= 4; i++) {
         const y = pad.t + (ch / 4) * i;
@@ -1707,16 +1774,16 @@
         ctx.lineTo(w - pad.r, y);
         ctx.stroke();
         
-        // Y labels
+        // Y labels - theme aware
         const val = max - (range / 4) * i;
-        ctx.fillStyle = '#999';
+        ctx.fillStyle = colors.label;
         ctx.font = '10px JetBrains Mono';
         ctx.textAlign = 'right';
         ctx.fillText('$' + val.toFixed(2), pad.l - 6, y + 3);
       }
       
-      // Line
-      ctx.strokeStyle = '#ff6b35';
+      // Line - theme aware
+      ctx.strokeStyle = colors.line;
       ctx.lineWidth = 2;
       ctx.lineCap = 'round';
       ctx.lineJoin = 'round';
@@ -1730,10 +1797,10 @@
       });
       ctx.stroke();
       
-      // Gradient fill
+      // Gradient fill - theme aware
       const grad = ctx.createLinearGradient(0, pad.t, 0, h - pad.b);
-      grad.addColorStop(0, 'rgba(255, 107, 53, 0.15)');
-      grad.addColorStop(1, 'rgba(255, 107, 53, 0)');
+      grad.addColorStop(0, colors.gradientTop);
+      grad.addColorStop(1, colors.gradientBottom);
       
       ctx.fillStyle = grad;
       ctx.beginPath();
@@ -1748,8 +1815,8 @@
       ctx.closePath();
       ctx.fill();
       
-      // Dots
-      ctx.fillStyle = '#ff6b35';
+      // Dots - theme aware
+      ctx.fillStyle = colors.line;
       data.forEach((pt, i) => {
         const x = pad.l + (i / (data.length - 1)) * cw;
         const y = pad.t + ch - ((pt.v - min) / range) * ch;
@@ -1849,6 +1916,8 @@
     // Render journal
     function renderJournal(md) {
       const container = document.getElementById('journal-content');
+      const preview = document.getElementById('journal-preview');
+      
       // Simple markdown to HTML
       let html = md
         .replace(/^## (.+)$/gm, '<h2>$1</h2>')
@@ -1857,7 +1926,16 @@
         .replace(/\n\n/g, '</p><p>')
         .replace(/\n/g, '<br>');
       
+      // Full content in modal
       container.innerHTML = '<p>' + html + '</p>';
+      
+      // Preview in card (plain text, first ~200 chars)
+      const plainText = md
+        .replace(/^#+ .+$/gm, '')
+        .replace(/\*\*(.+?)\*\*/g, '$1')
+        .replace(/\n+/g, ' ')
+        .trim();
+      preview.textContent = plainText.slice(0, 200) + (plainText.length > 200 ? '...' : '');
     }
     
     // Render all
@@ -2135,12 +2213,28 @@
       document.getElementById('trade-modal').classList.remove('show');
     }
     
+    // Journal modal
+    function openJournalModal() {
+      document.getElementById('journal-modal').classList.add('show');
+    }
+    
+    function closeJournalModal() {
+      document.getElementById('journal-modal').classList.remove('show');
+    }
+    
     document.getElementById('trade-modal').addEventListener('click', e => {
       if (e.target.id === 'trade-modal') closeModal();
     });
     
+    document.getElementById('journal-modal').addEventListener('click', e => {
+      if (e.target.id === 'journal-modal') closeJournalModal();
+    });
+    
     document.addEventListener('keydown', e => {
-      if (e.key === 'Escape') closeModal();
+      if (e.key === 'Escape') {
+        closeModal();
+        closeJournalModal();
+      }
     });
     
     // Resize handler
