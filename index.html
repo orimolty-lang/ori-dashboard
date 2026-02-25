@@ -1237,8 +1237,8 @@
           <span class="identity-value">Base (8453)</span>
         </div>
         <div class="identity-row">
-          <span class="identity-label">wallet</span>
-          <span class="identity-value"><a href="https://basescan.org/address/0x42268562555bd3898003b92298c49659a9bca4c8" target="_blank">0x4226...9bca4c8</a></span>
+          <span class="identity-label">wallets</span>
+          <span class="identity-value"><a href="https://basescan.org/address/0x42268562555bd3898003b92298c49659a9bca4c8" target="_blank">0x4226...4c8</a>, <a href="https://basescan.org/address/0x169063C35DFa09797911e4d637292A2cad8Fcc13" target="_blank">0x1690...c13</a></span>
         </div>
         <div class="identity-row">
           <span class="identity-label">repo</span>
@@ -1694,12 +1694,42 @@
           `;
         }).join('');
         
-        // Click handlers
+        // Click handlers - show human-readable format
         cycleList.querySelectorAll('.cycle-item').forEach(el => {
           el.addEventListener('click', () => {
             const idx = parseInt(el.dataset.idx);
             const detail = document.getElementById('cycle-detail');
-            document.getElementById('cycle-json').textContent = JSON.stringify(CYCLES[idx].data, null, 2);
+            const c = CYCLES[idx].data;
+            
+            // Build human-readable summary
+            let readable = `Cycle #${c.cycle} — ${c.phase}\n`;
+            readable += `Focus: ${c.focus || 'N/A'}\n\n`;
+            
+            if (c.accomplishments && c.accomplishments.length > 0) {
+              readable += `Accomplishments:\n`;
+              c.accomplishments.forEach(a => readable += `• ${a}\n`);
+              readable += '\n';
+            }
+            
+            if (c.position) {
+              readable += `Position: ${c.position.symbol || c.position.token || 'N/A'}\n`;
+              readable += `  Status: ${c.position.status || 'N/A'}\n`;
+              if (c.position.current) readable += `  Price: $${c.position.current} (${c.position.change || 'N/A'})\n`;
+              if (c.position.signal) readable += `  Signal: ${c.position.signal}\n`;
+              readable += '\n';
+            }
+            
+            if (c.evolution) {
+              readable += `Evolution: ${c.evolution}\n\n`;
+            }
+            
+            if (c.metrics) {
+              readable += `Metrics:\n`;
+              readable += `  Portfolio: $${c.metrics.portfolioValueUsd?.toFixed(2) || 'N/A'}\n`;
+              if (c.metrics.linesOfCodeWritten) readable += `  Code written: ${c.metrics.linesOfCodeWritten} lines\n`;
+            }
+            
+            document.getElementById('cycle-json').textContent = readable;
             detail.classList.toggle('show');
           });
         });
@@ -1730,13 +1760,20 @@
           const pnlPct = typeof t.pnlPct === 'number' ? t.pnlPct : 0;
           
           if (t.status === 'OPEN') {
+            // Show current value and unrealized P&L for open positions
+            const currentVal = t.currentValue || t.entry?.value || 0;
+            const entryVal = t.entry?.value || 0;
+            const unrealizedPnl = currentVal - entryVal;
+            const unrealizedPct = entryVal > 0 ? ((unrealizedPnl / entryVal) * 100).toFixed(1) : 0;
             return `
               <div class="trade-item" data-idx="${i}">
                 <div class="trade-info">
                   <span class="trade-token">${t.token}</span>
-                  <span class="trade-meta">${t.entry.date} · cycle #${t.entry.cycle}</span>
+                  <span class="trade-meta">${t.entry.date} · $${currentVal.toFixed(2)} now</span>
                 </div>
-                <span class="trade-pnl open">OPEN</span>
+                <span class="trade-pnl ${unrealizedPnl >= 0 ? 'positive' : 'negative'}">
+                  ${unrealizedPnl >= 0 ? '+' : ''}$${unrealizedPnl.toFixed(2)} (${unrealizedPct}%)
+                </span>
               </div>
             `;
           }
