@@ -655,19 +655,30 @@
     // Known trade history (extracted from cycles)
     const KNOWN_TRADES = [
       {
-        token: 'BOTCOIN',
-        entry: { value: 4.50, date: '2026-02-24', cycle: 28 },
-        exit: { value: 3.93, date: '2026-02-24', cycle: 32 },
-        pnl: -0.57,
-        pnlPct: -12.7,
-        reason: 'Stop loss triggered'
+        token: 'HCLAW',
+        entry: { value: 0.97, date: '2026-02-24', cycle: 54 },
+        exit: null,
+        status: 'OPEN',
+        pnl: null,
+        pnlPct: null,
+        reason: 'Strong accumulation + price confirming'
       },
       {
         token: 'PERKOS',
         entry: { value: 2.93, date: '2026-02-24', cycle: 33 },
         exit: { value: 2.43, date: '2026-02-24', cycle: 43 },
+        status: 'CLOSED',
         pnl: -0.50,
         pnlPct: -17.1,
+        reason: 'Stop loss triggered'
+      },
+      {
+        token: 'BOTCOIN',
+        entry: { value: 4.50, date: '2026-02-24', cycle: 28 },
+        exit: { value: 3.93, date: '2026-02-24', cycle: 32 },
+        status: 'CLOSED',
+        pnl: -0.57,
+        pnlPct: -12.7,
         reason: 'Stop loss triggered'
       }
     ];
@@ -781,17 +792,31 @@
         if (KNOWN_TRADES.length === 0) {
           tradeList.innerHTML = '<div class="empty-state">No trades yet</div>';
         } else {
-          tradeList.innerHTML = KNOWN_TRADES.map(t => `
-            <div class="trade-item">
-              <div class="trade-info">
-                <span class="trade-token">${t.token}</span>
-                <span class="trade-date">${t.entry.date} → ${t.exit.date} | ${t.reason}</span>
-              </div>
-              <div class="trade-pnl ${t.pnl >= 0 ? 'green' : 'red'}">
-                ${t.pnl >= 0 ? '+' : ''}$${t.pnl.toFixed(2)} (${t.pnlPct >= 0 ? '+' : ''}${t.pnlPct}%)
-              </div>
-            </div>
-          `).join('');
+          tradeList.innerHTML = KNOWN_TRADES.map(t => {
+            if (t.status === 'OPEN') {
+              return `
+                <div class="trade-item">
+                  <div class="trade-info">
+                    <span class="trade-token">${t.token}</span>
+                    <span class="trade-date">${t.entry.date} | ${t.reason}</span>
+                  </div>
+                  <div class="trade-pnl yellow">OPEN ($${t.entry.value.toFixed(2)})</div>
+                </div>
+              `;
+            } else {
+              return `
+                <div class="trade-item">
+                  <div class="trade-info">
+                    <span class="trade-token">${t.token}</span>
+                    <span class="trade-date">${t.entry.date} → ${t.exit.date} | ${t.reason}</span>
+                  </div>
+                  <div class="trade-pnl ${t.pnl >= 0 ? 'green' : 'red'}">
+                    ${t.pnl >= 0 ? '+' : ''}$${t.pnl.toFixed(2)} (${t.pnlPct >= 0 ? '+' : ''}${t.pnlPct}%)
+                  </div>
+                </div>
+              `;
+            }
+          }).join('');
         }
         
         // Render cycle list (all cycles, scrollable)
@@ -801,12 +826,15 @@
           let timeDisplay = c.date;
           if (ts) {
             const d = new Date(ts);
-            timeDisplay = d.toLocaleString('en-US', { 
-              timeZone: 'America/Los_Angeles',
-              month: 'short', day: 'numeric', 
-              hour: 'numeric', minute: '2-digit',
-              hour12: true 
-            }) + ' PST';
+            // Validate date before using
+            if (!isNaN(d.getTime())) {
+              timeDisplay = d.toLocaleString('en-US', { 
+                timeZone: 'America/Los_Angeles',
+                month: 'short', day: 'numeric', 
+                hour: 'numeric', minute: '2-digit',
+                hour12: true 
+              }) + ' PST';
+            }
           }
           const cycleNum = c.data.cycle || '?';
           return `
