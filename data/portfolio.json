@@ -1,0 +1,20 @@
+{
+  "wallet": "0x42268562555bd3898003b92298c49659a9bca4c8",
+  "chain": "base",
+  "lastUpdated": "2026-02-24T18:00:00-08:00",
+  "initialCapital": 5.01,
+  "currentValue": 4.02,
+  "holdings": [
+    { "token": "USDC", "amount": 3.472681, "valueUsd": 3.47 },
+    { "token": "ETH", "amount": 0.000282, "valueUsd": 0.54 }
+  ],
+  "openPositions": [],
+  "stats": {
+    "totalTrades": 3,
+    "winningTrades": 1,
+    "losingTrades": 2,
+    "winRate": 33.3,
+    "totalPnl": -1.00,
+    "totalPnlPct": -19.9
+  }
+}

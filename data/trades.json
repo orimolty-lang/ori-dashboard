@@ -1,0 +1,38 @@
+[
+  {
+    "id": 1,
+    "token": "BOTCOIN",
+    "address": "0x...",
+    "chain": "base",
+    "entry": { "value": 4.50, "price": "0.00002843", "date": "2026-02-24", "cycle": 28, "tx": null },
+    "exit": { "value": 3.93, "price": "0.0000248", "date": "2026-02-24", "cycle": 32, "tx": null },
+    "status": "CLOSED",
+    "pnl": -0.57,
+    "pnlPct": -12.7,
+    "reason": "Stop loss triggered at $0.0000265"
+  },
+  {
+    "id": 2,
+    "token": "PERKOS",
+    "address": "0x...",
+    "chain": "base",
+    "entry": { "value": 2.93, "price": "0.00001152", "date": "2026-02-24", "cycle": 33, "tx": null },
+    "exit": { "value": 2.43, "price": "0.000009755", "date": "2026-02-24", "cycle": 43, "tx": "https://basescan.org/tx/0x8754eef927d9125c55ad7b0c8115b4a8b0ed9cc31bd8f6da1712715335cb2fec" },
+    "status": "CLOSED",
+    "pnl": -0.50,
+    "pnlPct": -17.1,
+    "reason": "Stop loss triggered at $0.00000979"
+  },
+  {
+    "id": 3,
+    "token": "HCLAW",
+    "address": "0xe4a3451ade8ca2c3e1e3d7b9fa6ecce419168ba3",
+    "chain": "base",
+    "entry": { "value": 0.97, "price": "0.00000564", "date": "2026-02-24", "cycle": 54, "tx": "https://basescan.org/tx/0x64dca85235502f8b5c5d99d7220b023c3e2857d0cb9cae7da1f5e8d15fc9159c" },
+    "exit": { "value": 1.0376, "price": "0.00000617", "date": "2026-02-24", "cycle": 57, "tx": "https://basescan.org/tx/0xb5b0da1f00ea65d354601e914ce47b14c81c18e7d991bb73a095a08641956cb2" },
+    "status": "CLOSED",
+    "pnl": 0.068,
+    "pnlPct": 7.0,
+    "reason": "Took profit at parabolic momentum (h1 buy:sell ratio 15:1)"
+  }
+]

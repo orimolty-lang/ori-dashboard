@@ -972,9 +972,6 @@
   </div>
 
   <script>
-    const REPO_OWNER = 'orimolty-lang';
-    const REPO_NAME = 'ori-agent';
-    
     let TRADES = [];
     let PORTFOLIO = null;
     let CYCLES = [];
@@ -1137,54 +1134,41 @@
       }
     }
     
-    // Fetch data
+    // Fetch data from local server
     async function fetchData() {
       try {
         // Trades
-        const tRes = await fetch(`https://raw.githubusercontent.com/${REPO_OWNER}/${REPO_NAME}/main/data/trades.json?t=${Date.now()}`);
+        const tRes = await fetch(`./data/trades.json?t=${Date.now()}`);
         if (tRes.ok) TRADES = await tRes.json();
         
         // Portfolio
-        const pRes = await fetch(`https://raw.githubusercontent.com/${REPO_OWNER}/${REPO_NAME}/main/data/portfolio.json?t=${Date.now()}`);
+        const pRes = await fetch(`./data/portfolio.json?t=${Date.now()}`);
         if (pRes.ok) PORTFOLIO = await pRes.json();
+        
+        // Cycles (pre-combined)
+        const cRes = await fetch(`./data/cycles.json?t=${Date.now()}`);
+        if (cRes.ok) {
+          const allCycles = await cRes.json();
+          // Sort by timestamp descending
+          CYCLES = allCycles
+            .filter(c => c && c.timestamp)
+            .sort((a, b) => new Date(b.timestamp) - new Date(a.timestamp))
+            .map(data => ({ data }));
+        }
       } catch (e) {
         console.warn('Data fetch error:', e);
       }
       
-      // Cycles
-      try {
-        const fRes = await fetch(`https://api.github.com/repos/${REPO_OWNER}/${REPO_NAME}/contents/cycles`);
-        if (fRes.ok) {
-          const folders = await fRes.json();
-          const dateFolders = folders.filter(f => f.type === 'dir').sort((a, b) => b.name.localeCompare(a.name));
-          
-          CYCLES = [];
-          for (const folder of dateFolders.slice(0, 7)) {
-            const cRes = await fetch(`https://api.github.com/repos/${REPO_OWNER}/${REPO_NAME}/contents/cycles/${folder.name}`);
-            if (!cRes.ok) continue;
-            const files = await cRes.json();
-            
-            for (const file of files.filter(f => f.name.endsWith('.json')).sort((a, b) => b.name.localeCompare(a.name))) {
-              try {
-                const data = await (await fetch(file.download_url)).json();
-                CYCLES.push({ date: folder.name, data });
-              } catch (e) {}
-            }
-          }
-          CYCLES.sort((a, b) => new Date(b.data.timestamp) - new Date(a.data.timestamp));
-        }
-      } catch (e) {
-        console.warn('Cycles fetch error:', e);
-      }
-      
       // Journal
       try {
-        const jRes = await fetch(`https://raw.githubusercontent.com/${REPO_OWNER}/${REPO_NAME}/main/journal.md?t=${Date.now()}`);
+        const jRes = await fetch(`./journal.md?t=${Date.now()}`);
         if (jRes.ok) {
           const md = await jRes.text();
           renderJournal(md);
         }
-      } catch (e) {}
+      } catch (e) {
+        console.warn('Journal fetch error:', e);
+      }
       
       renderAll();
     }
@@ -1217,16 +1201,17 @@
         document.getElementById('change-amount').textContent = (pnl >= 0 ? '+' : '') + '$' + Math.abs(pnl).toFixed(2);
         document.getElementById('change-percent').textContent = `(${pnl >= 0 ? '+' : ''}${pct}%)`;
         
-        document.getElementById('trade-count').textContent = PORTFOLIO.stats.totalTrades;
-        const winRate = PORTFOLIO.stats.totalTrades > 0 
-          ? ((PORTFOLIO.stats.wins / PORTFOLIO.stats.totalTrades) * 100).toFixed(0) 
-          : 0;
+        document.getElementById('trade-count').textContent = PORTFOLIO.stats.totalTrades || 0;
+        const wins = PORTFOLIO.stats.winningTrades || PORTFOLIO.stats.wins || 0;
+        const losses = PORTFOLIO.stats.losingTrades || PORTFOLIO.stats.losses || 0;
+        const total = PORTFOLIO.stats.totalTrades || 0;
+        const winRate = total > 0 ? ((wins / total) * 100).toFixed(0) : 0;
         document.getElementById('win-rate').textContent = winRate + '%';
         
         // Stats
-        document.getElementById('stat-trades').textContent = PORTFOLIO.stats.totalTrades;
-        document.getElementById('stat-wins').textContent = PORTFOLIO.stats.wins;
-        document.getElementById('stat-losses').textContent = PORTFOLIO.stats.losses;
+        document.getElementById('stat-trades').textContent = PORTFOLIO.stats.totalTrades || 0;
+        document.getElementById('stat-wins').textContent = PORTFOLIO.stats.winningTrades || PORTFOLIO.stats.wins || 0;
+        document.getElementById('stat-losses').textContent = PORTFOLIO.stats.losingTrades || PORTFOLIO.stats.losses || 0;
         document.getElementById('stat-pnl').textContent = (pnl >= 0 ? '+' : '') + '$' + pnl.toFixed(2);
         document.getElementById('stat-pnl').style.color = pnl >= 0 ? 'var(--success)' : 'var(--danger)';
         
