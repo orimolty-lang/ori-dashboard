@@ -645,6 +645,58 @@
       color: var(--ink-light);
     }
 
+    /* Funding Payment History */
+    .funding-history {
+      margin-top: 12px;
+      padding-top: 12px;
+      border-top: 1px dashed var(--border);
+    }
+    .funding-history-title {
+      font-size: 0.7rem;
+      color: var(--ink-faint);
+      text-transform: uppercase;
+      letter-spacing: 0.05em;
+      margin-bottom: 8px;
+    }
+    .funding-history-list {
+      display: flex;
+      flex-direction: column;
+      gap: 6px;
+      max-height: 150px;
+      overflow-y: auto;
+      scrollbar-width: thin;
+      scrollbar-color: var(--border) transparent;
+    }
+    .funding-payment {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      padding: 8px 10px;
+      background: var(--bg);
+      border-radius: 6px;
+      font-size: 0.8rem;
+    }
+    .funding-payment-time {
+      color: var(--ink-light);
+      font-size: 0.7rem;
+    }
+    .funding-payment-amount {
+      font-family: 'JetBrains Mono', monospace;
+      font-weight: 500;
+      color: var(--success);
+    }
+    .funding-payment-rate {
+      font-family: 'JetBrains Mono', monospace;
+      font-size: 0.65rem;
+      color: var(--ink-faint);
+    }
+    .funding-empty {
+      font-size: 0.75rem;
+      color: var(--ink-faint);
+      text-align: center;
+      padding: 12px;
+    }
+
     /* Chart */
     .chart-wrap {
       height: 180px;
@@ -1613,6 +1665,12 @@
               <span>since <span class="funding-stat-value" id="funding-start-date">--</span></span>
             </div>
           </div>
+          <div class="funding-history" id="funding-history">
+            <div class="funding-history-title">📜 payment history</div>
+            <div class="funding-history-list" id="funding-history-list">
+              <div class="funding-empty">waiting for first payment...</div>
+            </div>
+          </div>
         </div>
         <div class="chart-wrap">
           <canvas id="portfolio-chart"></canvas>
@@ -2448,10 +2506,10 @@
         sideEl.textContent = pos.side;
         sideEl.className = 'funding-side ' + pos.side.toLowerCase();
         
-        const apr = Math.abs(pos.fundingApr || 0);
+        const apr = Math.abs(PORTFOLIO.fundingFarm.apr || pos.fundingApr || 0);
         document.getElementById('funding-rate').textContent = apr.toFixed(0) + '% APR';
         
-        const expectedPayment = PORTFOLIO.fundingFarm.expectedDailyFunding / 3 || 0.02;
+        const expectedPayment = PORTFOLIO.fundingFarm.expectedDailyFunding / 3 || (PORTFOLIO.fundingFarm.totalCollected || 0.02);
         document.getElementById('funding-expected').textContent = '~$' + expectedPayment.toFixed(3) + '/8h';
         
         // Countdown timer
@@ -2481,7 +2539,7 @@
     let FUNDING_PAYMENTS = null;
     async function loadFundingPayments() {
       try {
-        const res = await fetch(DATA_BASE + '/funding-payments.json?t=' + Date.now());
+        const res = await fetch('./data/funding-payments.json?t=' + Date.now());
         if (res.ok) {
           FUNDING_PAYMENTS = await res.json();
           updateFundingProgress();
@@ -2515,6 +2573,42 @@
       } else {
         document.getElementById('funding-start-date').textContent = 'today';
       }
+      
+      // Render payment history list
+      renderFundingHistory();
+    }
+    
+    function renderFundingHistory() {
+      const listEl = document.getElementById('funding-history-list');
+      if (!FUNDING_PAYMENTS || !FUNDING_PAYMENTS.payments || FUNDING_PAYMENTS.payments.length === 0) {
+        listEl.innerHTML = '<div class="funding-empty">waiting for first payment...</div>';
+        return;
+      }
+      
+      // Sort payments newest first
+      const payments = [...FUNDING_PAYMENTS.payments].sort((a, b) => 
+        new Date(b.timestamp) - new Date(a.timestamp)
+      );
+      
+      listEl.innerHTML = payments.map(p => {
+        const d = new Date(p.timestamp);
+        const timeStr = d.toLocaleString('en-US', {
+          timeZone: 'America/Los_Angeles',
+          month: 'short', day: 'numeric', hour: 'numeric', minute: '2-digit'
+        });
+        const rateStr = (p.rate * 100).toFixed(3) + '%';
+        const symbol = p.symbol.replace('PERP_', '').replace('_USDC', '');
+        
+        return `
+          <div class="funding-payment">
+            <div>
+              <div class="funding-payment-time">${timeStr}</div>
+              <div class="funding-payment-rate">${symbol} @ ${rateStr}</div>
+            </div>
+            <div class="funding-payment-amount">+$${p.amount.toFixed(4)}</div>
+          </div>
+        `;
+      }).join('');
     }
     
     // Modal
