@@ -539,6 +539,68 @@
       animation: pulse 2s ease-in-out infinite;
     }
 
+    /* Funding Farm */
+    .funding-farm {
+      margin: 16px 0;
+      padding: 12px 0;
+      border-top: 1px solid var(--shadow-color);
+    }
+    .funding-position {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      margin-bottom: 12px;
+    }
+    .funding-symbol {
+      font-family: 'JetBrains Mono', monospace;
+      font-weight: 600;
+      font-size: 0.9rem;
+    }
+    .funding-side {
+      font-size: 0.7rem;
+      padding: 2px 6px;
+      border-radius: 4px;
+      font-weight: 500;
+      text-transform: uppercase;
+    }
+    .funding-side.long {
+      background: var(--success-soft);
+      color: var(--success);
+    }
+    .funding-side.short {
+      background: var(--danger-soft);
+      color: var(--danger);
+    }
+    .funding-countdown {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 8px;
+    }
+    .funding-label {
+      font-size: 0.75rem;
+      color: var(--ink-light);
+    }
+    .funding-timer {
+      font-family: 'JetBrains Mono', monospace;
+      font-size: 1.1rem;
+      font-weight: 500;
+      color: var(--accent);
+    }
+    .funding-details {
+      display: flex;
+      justify-content: space-between;
+      font-size: 0.8rem;
+    }
+    .funding-rate {
+      color: var(--success);
+      font-family: 'JetBrains Mono', monospace;
+    }
+    .funding-expected {
+      color: var(--ink-light);
+      font-family: 'JetBrains Mono', monospace;
+    }
+
     /* Chart */
     .chart-wrap {
       height: 180px;
@@ -1480,6 +1542,21 @@
             <div class="loading">loading...</div>
           </div>
         </div>
+        <div class="funding-farm" id="funding-farm" style="display:none;">
+          <div class="holdings-title">⚡ funding farm</div>
+          <div class="funding-position" id="funding-position">
+            <span class="funding-symbol"></span>
+            <span class="funding-side"></span>
+          </div>
+          <div class="funding-countdown">
+            <span class="funding-label">next payment</span>
+            <span class="funding-timer" id="funding-timer">--:--:--</span>
+          </div>
+          <div class="funding-details">
+            <span class="funding-rate" id="funding-rate">--% APR</span>
+            <span class="funding-expected" id="funding-expected">~$0.00</span>
+          </div>
+        </div>
         <div class="chart-wrap">
           <canvas id="portfolio-chart"></canvas>
         </div>
@@ -2302,6 +2379,42 @@
         }
       });
       renderCalendar(dailyPnL);
+      
+      // Funding Farm
+      if (PORTFOLIO && PORTFOLIO.fundingFarm && PORTFOLIO.fundingFarm.active && PORTFOLIO.openPositions && PORTFOLIO.openPositions.length > 0) {
+        const fundingEl = document.getElementById('funding-farm');
+        fundingEl.style.display = 'block';
+        
+        const pos = PORTFOLIO.openPositions[0];
+        fundingEl.querySelector('.funding-symbol').textContent = pos.symbol.replace('PERP_', '').replace('_USDC', '');
+        const sideEl = fundingEl.querySelector('.funding-side');
+        sideEl.textContent = pos.side;
+        sideEl.className = 'funding-side ' + pos.side.toLowerCase();
+        
+        const apr = Math.abs(pos.fundingApr || 0);
+        document.getElementById('funding-rate').textContent = apr.toFixed(0) + '% APR';
+        
+        const expectedPayment = PORTFOLIO.fundingFarm.expectedDailyFunding / 3 || 0.02;
+        document.getElementById('funding-expected').textContent = '~$' + expectedPayment.toFixed(3) + '/8h';
+        
+        // Countdown timer
+        const nextFunding = new Date(PORTFOLIO.fundingFarm.nextSettlement);
+        function updateFundingTimer() {
+          const now = new Date();
+          const diff = nextFunding - now;
+          if (diff <= 0) {
+            document.getElementById('funding-timer').textContent = 'settling...';
+            return;
+          }
+          const h = Math.floor(diff / 3600000);
+          const m = Math.floor((diff % 3600000) / 60000);
+          const s = Math.floor((diff % 60000) / 1000);
+          document.getElementById('funding-timer').textContent = 
+            String(h).padStart(2, '0') + ':' + String(m).padStart(2, '0') + ':' + String(s).padStart(2, '0');
+        }
+        updateFundingTimer();
+        setInterval(updateFundingTimer, 1000);
+      }
     }
     
     // Modal
