@@ -727,6 +727,374 @@
     @keyframes ripple {
       to { transform: scale(4); opacity: 0; }
     }
+
+    /* ==================== MOBILE RESPONSIVE STYLES ==================== */
+    
+    /* Tablet and below */
+    @media (max-width: 768px) {
+      .page {
+        padding: 24px 16px 60px;
+      }
+      
+      header {
+        flex-direction: column;
+        align-items: flex-start;
+        gap: 16px;
+        margin-bottom: 32px;
+      }
+      
+      .logo {
+        font-size: 2rem;
+      }
+      
+      nav {
+        gap: 16px;
+        flex-wrap: wrap;
+        font-size: 0.85rem;
+      }
+      
+      .card {
+        padding: 20px;
+        border-radius: 12px;
+      }
+      
+      .card-title {
+        font-size: 1.15rem;
+        margin-bottom: 16px;
+      }
+      
+      .portfolio-value {
+        font-size: 2.5rem;
+      }
+      
+      .portfolio-meta {
+        gap: 20px;
+        flex-wrap: wrap;
+      }
+      
+      .stats-row {
+        gap: 12px;
+      }
+      
+      .stat-item {
+        min-width: 80px;
+        padding: 12px;
+      }
+      
+      .stat-value {
+        font-size: 1.5rem;
+      }
+      
+      .calendar {
+        gap: 4px;
+      }
+      
+      .calendar-day {
+        font-size: 0.7rem;
+      }
+      
+      .calendar-day .day-pnl {
+        font-size: 0.5rem;
+      }
+      
+      footer {
+        flex-direction: column;
+        gap: 12px;
+        text-align: center;
+      }
+      
+      .modal {
+        max-width: 100%;
+        margin: 10px;
+        border-radius: 16px;
+      }
+      
+      .modal-header,
+      .modal-body {
+        padding: 20px;
+      }
+    }
+    
+    /* Mobile phones */
+    @media (max-width: 480px) {
+      html {
+        font-size: 14px;
+      }
+      
+      .page {
+        padding: 16px 12px 50px;
+      }
+      
+      header {
+        margin-bottom: 24px;
+        padding-bottom: 16px;
+      }
+      
+      .logo {
+        font-size: 1.75rem;
+      }
+      
+      nav {
+        gap: 12px;
+        font-size: 0.8rem;
+      }
+      
+      nav a {
+        padding: 4px 0;
+      }
+      
+      .grid {
+        gap: 16px;
+      }
+      
+      .card {
+        padding: 16px;
+        border-radius: 10px;
+      }
+      
+      .card-title {
+        font-size: 1.05rem;
+        margin-bottom: 12px;
+      }
+      
+      .portfolio-value {
+        font-size: 2rem;
+      }
+      
+      .portfolio-change {
+        font-size: 0.8rem;
+        padding: 5px 10px;
+      }
+      
+      .portfolio-meta {
+        gap: 16px;
+        font-size: 0.8rem;
+      }
+      
+      .chart-wrap {
+        height: 140px;
+        margin: 16px 0;
+      }
+      
+      .identity-row {
+        font-size: 0.85rem;
+        padding: 8px 0;
+      }
+      
+      .identity-value {
+        font-size: 0.75rem;
+        max-width: 55%;
+        word-break: break-all;
+      }
+      
+      .trade-item {
+        padding: 12px 0;
+        margin: 0 -8px;
+        padding-left: 8px;
+        padding-right: 8px;
+      }
+      
+      .trade-token {
+        font-size: 0.9rem;
+      }
+      
+      .trade-meta {
+        font-size: 0.75rem;
+      }
+      
+      .trade-pnl {
+        font-size: 0.8rem;
+      }
+      
+      .cycle-list {
+        max-height: 300px;
+      }
+      
+      .cycle-num {
+        font-size: 0.8rem;
+      }
+      
+      .cycle-time {
+        font-size: 0.7rem;
+      }
+      
+      .cycle-focus {
+        font-size: 0.85rem;
+      }
+      
+      .cycle-detail pre {
+        font-size: 0.7rem;
+      }
+      
+      .stats-row {
+        gap: 8px;
+      }
+      
+      .stat-item {
+        min-width: 60px;
+        padding: 10px 8px;
+      }
+      
+      .stat-value {
+        font-size: 1.25rem;
+      }
+      
+      .stat-label {
+        font-size: 0.7rem;
+      }
+      
+      .goal-header {
+        font-size: 0.8rem;
+      }
+      
+      .calendar-header {
+        font-size: 0.6rem;
+      }
+      
+      .calendar-day {
+        font-size: 0.65rem;
+        border-radius: 6px;
+      }
+      
+      .calendar-day .day-pnl {
+        display: none;
+      }
+      
+      .calendar-legend {
+        font-size: 0.7rem;
+        gap: 12px;
+      }
+      
+      .journal-content {
+        font-size: 0.85rem;
+        max-height: 250px;
+      }
+      
+      .journal-content h2 {
+        font-size: 1rem;
+      }
+      
+      .modal-overlay {
+        padding: 10px;
+      }
+      
+      .modal {
+        border-radius: 12px;
+      }
+      
+      .modal-header {
+        padding: 16px;
+      }
+      
+      .modal-title {
+        font-size: 1.2rem;
+        gap: 8px;
+      }
+      
+      .modal-close {
+        width: 32px;
+        height: 32px;
+      }
+      
+      .modal-body {
+        padding: 16px;
+      }
+      
+      .modal-row {
+        font-size: 0.85rem;
+        padding: 8px 0;
+      }
+      
+      .modal-value {
+        font-size: 0.8rem;
+      }
+      
+      .modal-section-title {
+        font-size: 0.7rem;
+      }
+      
+      .pnl-badge {
+        font-size: 0.75rem;
+        padding: 3px 10px;
+      }
+      
+      footer {
+        margin-top: 40px;
+        padding-top: 20px;
+        font-size: 0.8rem;
+      }
+      
+      .footer-links {
+        gap: 16px;
+      }
+      
+      /* Hide cursor trail on touch devices */
+      .cursor-dot {
+        display: none;
+      }
+    }
+    
+    /* Small phones */
+    @media (max-width: 360px) {
+      html {
+        font-size: 13px;
+      }
+      
+      .page {
+        padding: 12px 10px 40px;
+      }
+      
+      .logo {
+        font-size: 1.5rem;
+      }
+      
+      nav {
+        gap: 10px;
+        font-size: 0.75rem;
+      }
+      
+      .portfolio-value {
+        font-size: 1.75rem;
+      }
+      
+      .stat-item {
+        min-width: 50px;
+        padding: 8px 6px;
+      }
+      
+      .stat-value {
+        font-size: 1.1rem;
+      }
+    }
+    
+    /* Touch device optimizations */
+    @media (hover: none) and (pointer: coarse) {
+      .cursor-dot {
+        display: none;
+      }
+      
+      .card:hover {
+        transform: none;
+      }
+      
+      .calendar-day:hover {
+        transform: none;
+      }
+      
+      nav a::after {
+        display: none;
+      }
+      
+      /* Larger touch targets */
+      .trade-item,
+      .cycle-item {
+        min-height: 48px;
+      }
+      
+      nav a {
+        padding: 8px 4px;
+      }
+    }
   </style>
 </head>
 <body>
