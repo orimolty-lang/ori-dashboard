@@ -2035,7 +2035,7 @@
         
         cell.innerHTML = `
           <span class="day-num">${d}</span>
-          ${pnl !== 0 ? `<span class="day-pnl">${pnl > 0 ? '+' : ''}$${pnl.toFixed(2)}</span>` : ''}
+          ${pnl !== 0 ? `<span class="day-pnl">${pnl > 0 ? '+$' : '-$'}${Math.abs(pnl).toFixed(2)}</span>` : ''}
         `;
         
         cal.appendChild(cell);
