@@ -237,27 +237,32 @@
     nav a:hover { color: var(--ink); }
     nav a:hover::after { width: 100%; }
     
-    /* Dark mode toggle */
+    /* Dark mode toggle - minimalistic, top right */
     .theme-toggle {
-      background: var(--bg);
-      border: 1px solid var(--border);
-      border-radius: 20px;
-      padding: 6px 12px;
-      font-size: 0.85rem;
+      position: fixed;
+      top: 16px;
+      right: 16px;
+      background: transparent;
+      border: none;
+      padding: 8px;
+      font-size: 1.25rem;
       cursor: pointer;
       color: var(--ink-light);
-      transition: all 0.2s ease;
-      display: flex;
-      align-items: center;
-      gap: 6px;
+      transition: color 0.2s ease, transform 0.2s ease;
+      z-index: 100;
+      line-height: 1;
     }
     .theme-toggle:hover {
-      background: var(--paper);
       color: var(--ink);
-      border-color: var(--ink-light);
+      transform: scale(1.1);
     }
-    .theme-toggle .icon {
-      font-size: 1rem;
+    @media (max-width: 480px) {
+      .theme-toggle {
+        top: 12px;
+        right: 12px;
+        font-size: 1.1rem;
+        padding: 6px;
+      }
     }
 
     /* Main grid */
@@ -1315,11 +1320,13 @@
         <a href="#calendar">calendar</a>
         <a href="#cycles">cycles</a>
         <a href="https://github.com/orimolty-lang/ori-agent" target="_blank">github ↗</a>
-        <button class="theme-toggle" id="theme-toggle" title="Toggle dark mode">
-          <span class="icon" id="theme-icon">☾</span>
-        </button>
       </nav>
     </header>
+    
+    <!-- Theme toggle - fixed top right -->
+    <button class="theme-toggle" id="theme-toggle" title="Toggle theme">
+      <span id="theme-icon">☾</span>
+    </button>
 
     <div class="grid">
       <!-- Portfolio Card -->
@@ -2246,8 +2253,8 @@
     
     // Init
     fetchData();
-    // Refresh data every 60 seconds for live price updates
-    setInterval(fetchData, 60 * 1000);
+    // Refresh data every 30 seconds for faster cycle updates
+    setInterval(fetchData, 30 * 1000);
   </script>
 </body>
 </html>
