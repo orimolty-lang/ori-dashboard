@@ -939,6 +939,36 @@
       color: var(--ink-light);
     }
     
+    .signals-stat-highlight {
+      padding-left: 12px;
+      border-left: 1px solid var(--ink-faint);
+    }
+    
+    .signals-first {
+      color: var(--success) !important;
+    }
+    
+    .signals-repeat {
+      color: var(--ink-light) !important;
+    }
+    
+    .signal-badge {
+      font-size: 0.65rem;
+      padding: 1px 4px;
+      border-radius: 3px;
+      margin-left: 6px;
+    }
+    
+    .signal-badge.first {
+      background: rgba(34, 197, 94, 0.15);
+      color: var(--success);
+    }
+    
+    .signal-badge.repeat {
+      background: rgba(100, 100, 100, 0.15);
+      color: var(--ink-light);
+    }
+    
     .signals-list {
       display: flex;
       flex-direction: column;
@@ -2036,12 +2066,20 @@
             <span class="signals-stat-value" id="signals-pending">0</span>
             <span class="signals-stat-label">pending</span>
           </div>
+          <div class="signals-stat signals-stat-highlight">
+            <span class="signals-stat-value signals-first" id="signals-first-acc">-</span>
+            <span class="signals-stat-label">🆕 first</span>
+          </div>
+          <div class="signals-stat">
+            <span class="signals-stat-value signals-repeat" id="signals-repeat-acc">-</span>
+            <span class="signals-stat-label">🔁 repeat</span>
+          </div>
         </div>
         <div class="signals-list" id="signals-list">
           <div class="loading">loading signals...</div>
         </div>
         <div class="signals-footer">
-          <span class="signals-note">buy:sell ratio methodology • not financial advice</span>
+          <span class="signals-note">first signal effect: first signals outperform repeats • not financial advice</span>
         </div>
       </div>
 
@@ -2880,10 +2918,22 @@
       const pending = SIGNALS.filter(s => s.status === 'pending').length;
       const accuracy = checked.length > 0 ? ((correct / checked.length) * 100).toFixed(0) : 0;
       
+      // First vs Repeat breakdown
+      const firstSignals = SIGNALS.filter(s => s.is_first_signal === true);
+      const repeatSignals = SIGNALS.filter(s => s.is_first_signal === false);
+      const firstChecked = firstSignals.filter(s => s.status === 'checked');
+      const repeatChecked = repeatSignals.filter(s => s.status === 'checked');
+      const firstCorrect = firstChecked.filter(s => s.outcome === 'correct').length;
+      const repeatCorrect = repeatChecked.filter(s => s.outcome === 'correct').length;
+      const firstAcc = firstChecked.length > 0 ? ((firstCorrect / firstChecked.length) * 100).toFixed(0) : '-';
+      const repeatAcc = repeatChecked.length > 0 ? ((repeatCorrect / repeatChecked.length) * 100).toFixed(0) : '-';
+      
       // Update summary
       document.getElementById('signals-total').textContent = total;
       document.getElementById('signals-correct').textContent = correct;
       document.getElementById('signals-pending').textContent = pending;
+      document.getElementById('signals-first-acc').textContent = firstAcc === '-' ? '-' : `${firstAcc}%`;
+      document.getElementById('signals-repeat-acc').textContent = repeatAcc === '-' ? '-' : `${repeatAcc}%`;
       
       if (checked.length > 0) {
         document.getElementById('signals-accuracy').textContent = `${accuracy}% accuracy`;
@@ -2913,10 +2963,16 @@
           month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit'
         });
         
+        const badge = s.is_first_signal === true 
+          ? '<span class="signal-badge first">1st</span>'
+          : s.is_first_signal === false 
+            ? '<span class="signal-badge repeat">rpt</span>'
+            : '';
+        
         return `
           <div class="signal-item ${statusClass}">
             <div class="signal-main">
-              <span class="signal-token">${s.token}</span>
+              <span class="signal-token">${s.token}${badge}</span>
               <span class="signal-type ${s.signal}">${s.signal}</span>
             </div>
             <div class="signal-result">
