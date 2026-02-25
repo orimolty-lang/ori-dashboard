@@ -379,6 +379,56 @@
       font-weight: 500;
     }
 
+    /* Holdings breakdown */
+    .portfolio-holdings {
+      margin: 16px 0;
+      padding: 12px 0;
+      border-top: 1px solid var(--shadow-color);
+      border-bottom: 1px solid var(--shadow-color);
+    }
+    .holdings-title {
+      font-size: 0.75rem;
+      text-transform: uppercase;
+      letter-spacing: 0.1em;
+      color: var(--ink-light);
+      margin-bottom: 8px;
+    }
+    .holdings-list {
+      display: flex;
+      flex-direction: column;
+      gap: 6px;
+    }
+    .holding-item {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      padding: 6px 0;
+      font-size: 0.85rem;
+    }
+    .holding-token {
+      font-family: 'JetBrains Mono', monospace;
+      font-weight: 500;
+      display: flex;
+      align-items: center;
+      gap: 6px;
+    }
+    .holding-amount {
+      color: var(--ink-light);
+      font-size: 0.75rem;
+    }
+    .holding-value {
+      font-family: 'JetBrains Mono', monospace;
+      color: var(--ink);
+    }
+    .holding-live {
+      display: inline-block;
+      width: 6px;
+      height: 6px;
+      background: var(--success);
+      border-radius: 50%;
+      animation: pulse 2s ease-in-out infinite;
+    }
+
     /* Chart */
     .chart-wrap {
       height: 180px;
@@ -1253,6 +1303,12 @@
           <span id="change-amount">+$0.00</span>
           <span id="change-percent">(0%)</span>
         </div>
+        <div class="portfolio-holdings" id="portfolio-holdings">
+          <div class="holdings-title">holdings</div>
+          <div class="holdings-list" id="holdings-list">
+            <div class="loading">loading...</div>
+          </div>
+        </div>
         <div class="chart-wrap">
           <canvas id="portfolio-chart"></canvas>
         </div>
@@ -1515,6 +1571,7 @@
     
     // Update open positions with live prices
     async function updateLivePrices() {
+      // Update trades with live prices
       const openTrades = TRADES.filter(t => t.status === 'OPEN');
       for (const trade of openTrades) {
         if (trade.address && trade.address !== '0x...') {
@@ -1532,6 +1589,29 @@
           }
         }
       }
+      
+      // Update portfolio holdings with live prices
+      if (PORTFOLIO && PORTFOLIO.holdings) {
+        for (const h of PORTFOLIO.holdings) {
+          if (h.address && h.address !== '0x...') {
+            const livePrice = LIVE_PRICES[h.address] || await fetchLivePrice(h.address);
+            if (livePrice) {
+              LIVE_PRICES[h.address] = livePrice;
+              h.livePrice = livePrice;
+              h.liveValue = h.amount * livePrice;
+            }
+          }
+        }
+      }
+    }
+    
+    // Format amount for display (show abbreviated for large numbers, full precision for small)
+    function formatAmount(amount) {
+      if (amount >= 1000000) return (amount / 1000000).toFixed(2) + 'M';
+      if (amount >= 1000) return (amount / 1000).toFixed(2) + 'K';
+      if (amount >= 1) return amount.toFixed(2);
+      if (amount >= 0.001) return amount.toFixed(4);
+      return amount.toFixed(6);
     }
     
     // Calculate true portfolio value (wallet + open positions)
@@ -1546,14 +1626,19 @@
       
       if (PORTFOLIO.holdings) {
         for (const h of PORTFOLIO.holdings) {
+          // Use live value if available, otherwise static value
+          const value = h.liveValue || (LIVE_PRICES[h.address] ? h.amount * LIVE_PRICES[h.address] : h.valueUsd) || 0;
+          
           if (openTokens.includes(h.token.toUpperCase())) {
             // This is an open position - use live or current value from trade
             const trade = TRADES.find(t => t.status === 'OPEN' && t.token.toUpperCase() === h.token.toUpperCase());
-            if (trade) {
-              positionValue += trade.currentValue || h.valueUsd || 0;
+            if (trade && trade.currentValue) {
+              positionValue += trade.currentValue;
+            } else {
+              positionValue += value;
             }
           } else {
-            walletValue += h.valueUsd || 0;
+            walletValue += value;
           }
         }
       }
@@ -1808,6 +1893,26 @@
         const goalPct = Math.max(0, Math.min(100, (pnl / 100) * 100)).toFixed(1);
         document.getElementById('goal-pct').textContent = goalPct + '%';
         document.getElementById('goal-fill').style.width = goalPct + '%';
+        
+        // Holdings breakdown
+        if (PORTFOLIO.holdings) {
+          const holdingsList = document.getElementById('holdings-list');
+          holdingsList.innerHTML = PORTFOLIO.holdings.map(h => {
+            const isLive = h.livePrice || LIVE_PRICES[h.address];
+            const currentValue = h.liveValue || (isLive ? (h.amount * LIVE_PRICES[h.address]) : h.valueUsd);
+            const liveIndicator = isLive ? '<span class="holding-live" title="live price"></span>' : '';
+            return `
+              <div class="holding-item">
+                <div class="holding-token">
+                  ${liveIndicator}
+                  ${h.token}
+                  <span class="holding-amount">${formatAmount(h.amount)}</span>
+                </div>
+                <div class="holding-value">$${currentValue.toFixed(2)}</div>
+              </div>
+            `;
+          }).join('');
+        }
       }
       
       // Cycles
