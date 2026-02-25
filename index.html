@@ -652,36 +652,31 @@
       }
     }
 
-    // Known trade history (extracted from cycles)
-    const KNOWN_TRADES = [
-      {
-        token: 'HCLAW',
-        entry: { value: 0.97, date: '2026-02-24', cycle: 54 },
-        exit: null,
-        status: 'OPEN',
-        pnl: null,
-        pnlPct: null,
-        reason: 'Strong accumulation + price confirming'
-      },
-      {
-        token: 'PERKOS',
-        entry: { value: 2.93, date: '2026-02-24', cycle: 33 },
-        exit: { value: 2.43, date: '2026-02-24', cycle: 43 },
-        status: 'CLOSED',
-        pnl: -0.50,
-        pnlPct: -17.1,
-        reason: 'Stop loss triggered'
-      },
-      {
-        token: 'BOTCOIN',
-        entry: { value: 4.50, date: '2026-02-24', cycle: 28 },
-        exit: { value: 3.93, date: '2026-02-24', cycle: 32 },
-        status: 'CLOSED',
-        pnl: -0.57,
-        pnlPct: -12.7,
-        reason: 'Stop loss triggered'
+    // Dynamic trade history - loaded from data/trades.json
+    let KNOWN_TRADES = [];
+    let PORTFOLIO_DATA = null;
+    
+    async function fetchTradesAndPortfolio() {
+      try {
+        // Fetch trades.json from repo
+        const tradesRes = await fetch(`https://raw.githubusercontent.com/${REPO_OWNER}/${REPO_NAME}/main/data/trades.json?t=${Date.now()}`);
+        if (tradesRes.ok) {
+          KNOWN_TRADES = await tradesRes.json();
+        }
+      } catch (e) {
+        console.warn('Failed to fetch trades.json:', e);
       }
-    ];
+      
+      try {
+        // Fetch portfolio.json from repo  
+        const portfolioRes = await fetch(`https://raw.githubusercontent.com/${REPO_OWNER}/${REPO_NAME}/main/data/portfolio.json?t=${Date.now()}`);
+        if (portfolioRes.ok) {
+          PORTFOLIO_DATA = await portfolioRes.json();
+        }
+      } catch (e) {
+        console.warn('Failed to fetch portfolio.json:', e);
+      }
+    }
 
     async function fetchCycles() {
       const cycleList = document.getElementById('cycle-list');
@@ -788,35 +783,50 @@
           document.getElementById('chart-pnl-pct').className = 'chart-stat-value ' + (pnl >= 0 ? 'green' : 'red');
         }
         
-        // Render trade history
-        if (KNOWN_TRADES.length === 0) {
+        // Render trade history (sorted newest first)
+        const sortedTrades = [...KNOWN_TRADES].sort((a, b) => b.id - a.id);
+        if (sortedTrades.length === 0) {
           tradeList.innerHTML = '<div class="empty-state">No trades yet</div>';
         } else {
-          tradeList.innerHTML = KNOWN_TRADES.map(t => {
+          tradeList.innerHTML = sortedTrades.map(t => {
             if (t.status === 'OPEN') {
               return `
                 <div class="trade-item">
                   <div class="trade-info">
                     <span class="trade-token">${t.token}</span>
-                    <span class="trade-date">${t.entry.date} | ${t.reason}</span>
+                    <span class="trade-date">${t.entry.date} (cycle ${t.entry.cycle}) | ${t.reason}</span>
                   </div>
                   <div class="trade-pnl yellow">OPEN ($${t.entry.value.toFixed(2)})</div>
                 </div>
               `;
             } else {
+              const pnlVal = typeof t.pnl === 'number' ? t.pnl : 0;
+              const pnlPctVal = typeof t.pnlPct === 'number' ? t.pnlPct : 0;
               return `
                 <div class="trade-item">
                   <div class="trade-info">
                     <span class="trade-token">${t.token}</span>
-                    <span class="trade-date">${t.entry.date} → ${t.exit.date} | ${t.reason}</span>
+                    <span class="trade-date">${t.entry.date} → ${t.exit?.date || '?'} | ${t.reason}</span>
                   </div>
-                  <div class="trade-pnl ${t.pnl >= 0 ? 'green' : 'red'}">
-                    ${t.pnl >= 0 ? '+' : ''}$${t.pnl.toFixed(2)} (${t.pnlPct >= 0 ? '+' : ''}${t.pnlPct}%)
+                  <div class="trade-pnl ${pnlVal >= 0 ? 'green' : 'red'}">
+                    ${pnlVal >= 0 ? '+' : ''}$${pnlVal.toFixed(2)} (${pnlPctVal >= 0 ? '+' : ''}${pnlPctVal.toFixed(1)}%)
                   </div>
                 </div>
               `;
             }
           }).join('');
+        }
+        
+        // Use portfolio.json data if available
+        if (PORTFOLIO_DATA) {
+          document.getElementById('portfolio-value').textContent = '$' + PORTFOLIO_DATA.currentValue.toFixed(2);
+          document.getElementById('trades-count').textContent = PORTFOLIO_DATA.stats.totalTrades;
+          
+          // Update goal progress
+          const profit = PORTFOLIO_DATA.currentValue - PORTFOLIO_DATA.initialCapital;
+          const goalPct = Math.max(0, (profit / 100) * 100).toFixed(1);
+          document.getElementById('goal-progress').textContent = goalPct + '%';
+          document.getElementById('goal-bar').style.width = Math.min(Math.abs(parseFloat(goalPct)), 100) + '%';
         }
         
         // Render cycle list (all cycles, scrollable)
@@ -876,8 +886,11 @@
       fetchCycles();
     });
     
-    // Load cycles on page load
-    document.addEventListener('DOMContentLoaded', fetchCycles);
+    // Load data on page load
+    document.addEventListener('DOMContentLoaded', async () => {
+      await fetchTradesAndPortfolio();
+      fetchCycles();
+    });
     
     // Refresh every 5 minutes
     setInterval(fetchCycles, 5 * 60 * 1000);
