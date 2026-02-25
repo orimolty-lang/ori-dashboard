@@ -1714,6 +1714,76 @@
         padding: 8px 4px;
       }
     }
+
+    /* Funding Opportunities Card */
+    .funding-opps-grid {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 16px;
+      margin-top: 12px;
+    }
+    @media (max-width: 600px) {
+      .funding-opps-grid {
+        grid-template-columns: 1fr;
+      }
+    }
+    .funding-opps-column {
+      background: var(--card-hover);
+      border-radius: 8px;
+      padding: 12px;
+    }
+    .funding-opps-column-title {
+      font-family: 'JetBrains Mono', monospace;
+      font-size: 0.7rem;
+      text-transform: uppercase;
+      letter-spacing: 0.05em;
+      color: var(--ink-faint);
+      margin-bottom: 10px;
+      display: flex;
+      align-items: center;
+      gap: 6px;
+    }
+    .funding-opps-column-title .emoji {
+      font-size: 0.85rem;
+    }
+    .funding-opp-item {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      padding: 6px 0;
+      border-bottom: 1px solid var(--border);
+      font-size: 0.85rem;
+    }
+    .funding-opp-item:last-child {
+      border-bottom: none;
+    }
+    .funding-opp-symbol {
+      font-family: 'JetBrains Mono', monospace;
+      font-weight: 500;
+      color: var(--ink);
+    }
+    .funding-opp-apr {
+      font-family: 'JetBrains Mono', monospace;
+      font-weight: 600;
+    }
+    .funding-opp-apr.long {
+      color: #22c55e;
+    }
+    .funding-opp-apr.short {
+      color: #ef4444;
+    }
+    .funding-opps-updated {
+      font-size: 0.7rem;
+      color: var(--ink-faint);
+      text-align: right;
+      margin-top: 12px;
+    }
+    .funding-opps-empty {
+      color: var(--ink-faint);
+      font-style: italic;
+      font-size: 0.85rem;
+      padding: 8px 0;
+    }
   </style>
 </head>
 <body>
@@ -1965,6 +2035,26 @@
         <div class="signals-footer">
           <span class="signals-note">buy:sell ratio methodology • not financial advice</span>
         </div>
+      </div>
+
+      <!-- Funding Opportunities Card -->
+      <div class="card card-full reveal" id="funding-opps">
+        <div class="card-title"><span class="icon">⚡</span> funding opportunities</div>
+        <div class="funding-opps-grid">
+          <div class="funding-opps-column">
+            <div class="funding-opps-column-title"><span class="emoji">📈</span> long (shorts pay you)</div>
+            <div id="funding-long-opps">
+              <div class="loading">scanning...</div>
+            </div>
+          </div>
+          <div class="funding-opps-column">
+            <div class="funding-opps-column-title"><span class="emoji">📉</span> short (longs pay you)</div>
+            <div id="funding-short-opps">
+              <div class="funding-opps-empty">no opportunities &gt;30% APR</div>
+            </div>
+          </div>
+        </div>
+        <div class="funding-opps-updated" id="funding-opps-updated">last scan: --</div>
       </div>
 
       <!-- Journal Card - clickable to open modal -->
@@ -2455,7 +2545,55 @@
       // Fetch live prices for open positions
       await updateLivePrices();
       
+      // Fetch funding opportunities
+      await loadFundingOpportunities();
+      
       renderAll();
+    }
+    
+    // Load and render funding opportunities
+    async function loadFundingOpportunities() {
+      try {
+        const res = await fetch(`./data/funding-opportunities.json?t=${Date.now()}`);
+        if (!res.ok) return;
+        const data = await res.json();
+        
+        const longContainer = document.getElementById('funding-long-opps');
+        const shortContainer = document.getElementById('funding-short-opps');
+        const updatedEl = document.getElementById('funding-opps-updated');
+        
+        // Render long opportunities
+        if (data.long_opportunities && data.long_opportunities.length > 0) {
+          longContainer.innerHTML = data.long_opportunities.map(opp => `
+            <div class="funding-opp-item">
+              <span class="funding-opp-symbol">${opp.symbol}</span>
+              <span class="funding-opp-apr long">${opp.apr}</span>
+            </div>
+          `).join('');
+        } else {
+          longContainer.innerHTML = '<div class="funding-opps-empty">no opportunities &gt;30% APR</div>';
+        }
+        
+        // Render short opportunities
+        if (data.short_opportunities && data.short_opportunities.length > 0) {
+          shortContainer.innerHTML = data.short_opportunities.map(opp => `
+            <div class="funding-opp-item">
+              <span class="funding-opp-symbol">${opp.symbol}</span>
+              <span class="funding-opp-apr short">${opp.apr}</span>
+            </div>
+          `).join('');
+        } else {
+          shortContainer.innerHTML = '<div class="funding-opps-empty">no opportunities &gt;30% APR</div>';
+        }
+        
+        // Update timestamp
+        if (data.updated_at) {
+          const date = new Date(data.updated_at);
+          updatedEl.textContent = `last scan: ${date.toLocaleTimeString()} • ${data.total_pairs} pairs`;
+        }
+      } catch (e) {
+        console.warn('Funding opportunities fetch error:', e);
+      }
     }
     
     // Render journal
