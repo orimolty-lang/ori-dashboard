@@ -1815,8 +1815,8 @@
       ctx.closePath();
       ctx.fill();
       
-      // Dots - theme aware
-      ctx.fillStyle = colors.line;
+      // Dots
+      ctx.fillStyle = '#ff6b35';
       data.forEach((pt, i) => {
         const x = pad.l + (i / (data.length - 1)) * cw;
         const y = pad.t + ch - ((pt.v - min) / range) * ch;
@@ -1915,8 +1915,8 @@
     
     // Render journal
     function renderJournal(md) {
-      const container = document.getElementById('journal-content');
       const preview = document.getElementById('journal-preview');
+      const fullContent = document.getElementById('journal-content');
       
       // Simple markdown to HTML
       let html = md
@@ -1926,16 +1926,14 @@
         .replace(/\n\n/g, '</p><p>')
         .replace(/\n/g, '<br>');
       
-      // Full content in modal
-      container.innerHTML = '<p>' + html + '</p>';
+      const content = '<p>' + html + '</p>';
       
-      // Preview in card (plain text, first ~200 chars)
-      const plainText = md
-        .replace(/^#+ .+$/gm, '')
-        .replace(/\*\*(.+?)\*\*/g, '$1')
-        .replace(/\n+/g, ' ')
-        .trim();
-      preview.textContent = plainText.slice(0, 200) + (plainText.length > 200 ? '...' : '');
+      // Preview shows truncated version (first ~200 chars of text)
+      const plainText = md.replace(/[#*]/g, '').substring(0, 200);
+      preview.innerHTML = '<p>' + plainText + '...</p>';
+      
+      // Full content in modal
+      fullContent.innerHTML = content;
     }
     
     // Render all
@@ -2213,7 +2211,6 @@
       document.getElementById('trade-modal').classList.remove('show');
     }
     
-    // Journal modal
     function openJournalModal() {
       document.getElementById('journal-modal').classList.add('show');
     }
