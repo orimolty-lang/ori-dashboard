@@ -118,6 +118,26 @@
       --danger: #c44;
       --danger-soft: #fceaea;
     }
+    
+    /* Dark mode */
+    [data-theme="dark"] {
+      --bg: #0d0d0d;
+      --paper: #1a1a1a;
+      --ink: #f0f0f0;
+      --ink-light: #a0a0a0;
+      --ink-faint: #666666;
+      --border: #2a2a2a;
+      --accent: #ff8c5a;
+      --accent-soft: #2a1a14;
+      --success: #4ade80;
+      --success-soft: #14261a;
+      --danger: #f87171;
+      --danger-soft: #261414;
+    }
+    
+    [data-theme="dark"] .cursor-dot {
+      mix-blend-mode: screen;
+    }
 
     * { margin: 0; padding: 0; box-sizing: border-box; }
 
@@ -216,6 +236,29 @@
 
     nav a:hover { color: var(--ink); }
     nav a:hover::after { width: 100%; }
+    
+    /* Dark mode toggle */
+    .theme-toggle {
+      background: var(--bg);
+      border: 1px solid var(--border);
+      border-radius: 20px;
+      padding: 6px 12px;
+      font-size: 0.85rem;
+      cursor: pointer;
+      color: var(--ink-light);
+      transition: all 0.2s ease;
+      display: flex;
+      align-items: center;
+      gap: 6px;
+    }
+    .theme-toggle:hover {
+      background: var(--paper);
+      color: var(--ink);
+      border-color: var(--ink-light);
+    }
+    .theme-toggle .icon {
+      font-size: 1rem;
+    }
 
     /* Main grid */
     .grid {
@@ -1194,6 +1237,9 @@
         <a href="#calendar">calendar</a>
         <a href="#cycles">cycles</a>
         <a href="https://github.com/orimolty-lang/ori-agent" target="_blank">github ↗</a>
+        <button class="theme-toggle" id="theme-toggle" title="Toggle dark mode">
+          <span class="icon" id="theme-icon">☾</span>
+        </button>
       </nav>
     </header>
 
@@ -1425,6 +1471,95 @@
     let TRADES = [];
     let PORTFOLIO = null;
     let CYCLES = [];
+    let LIVE_PRICES = {}; // Cache for live token prices
+    
+    // Dark mode toggle
+    (function initTheme() {
+      const stored = localStorage.getItem('ori_theme');
+      const prefersDark = window.matchMedia('(prefers-color-scheme: dark)').matches;
+      const theme = stored || (prefersDark ? 'dark' : 'light');
+      document.documentElement.setAttribute('data-theme', theme);
+      updateThemeIcon(theme);
+    })();
+    
+    function toggleTheme() {
+      const current = document.documentElement.getAttribute('data-theme');
+      const next = current === 'dark' ? 'light' : 'dark';
+      document.documentElement.setAttribute('data-theme', next);
+      localStorage.setItem('ori_theme', next);
+      updateThemeIcon(next);
+    }
+    
+    function updateThemeIcon(theme) {
+      const icon = document.getElementById('theme-icon');
+      if (icon) icon.textContent = theme === 'dark' ? '☀' : '☾';
+    }
+    
+    document.addEventListener('DOMContentLoaded', () => {
+      const toggle = document.getElementById('theme-toggle');
+      if (toggle) toggle.addEventListener('click', toggleTheme);
+    });
+    
+    // Fetch live token price from GeckoTerminal
+    async function fetchLivePrice(tokenAddress) {
+      try {
+        const res = await fetch(`https://api.geckoterminal.com/api/v2/networks/base/tokens/${tokenAddress}`);
+        if (!res.ok) return null;
+        const data = await res.json();
+        return parseFloat(data.data?.attributes?.price_usd) || null;
+      } catch (e) {
+        console.warn('Price fetch failed for', tokenAddress, e);
+        return null;
+      }
+    }
+    
+    // Update open positions with live prices
+    async function updateLivePrices() {
+      const openTrades = TRADES.filter(t => t.status === 'OPEN');
+      for (const trade of openTrades) {
+        if (trade.address && trade.address !== '0x...') {
+          const livePrice = await fetchLivePrice(trade.address);
+          if (livePrice) {
+            LIVE_PRICES[trade.address] = livePrice;
+            // Calculate live value: amount * price
+            if (trade.entry && trade.entry.price) {
+              const amount = trade.entry.value / parseFloat(trade.entry.price);
+              trade.currentPrice = livePrice.toString();
+              trade.currentValue = amount * livePrice;
+              trade.pnl = trade.currentValue - trade.entry.value;
+              trade.pnlPct = ((trade.pnl / trade.entry.value) * 100);
+            }
+          }
+        }
+      }
+    }
+    
+    // Calculate true portfolio value (wallet + open positions)
+    function calculatePortfolioValue() {
+      if (!PORTFOLIO) return 0;
+      
+      // Get wallet holdings (exclude tokens that are open positions)
+      const openTokens = TRADES.filter(t => t.status === 'OPEN').map(t => t.token.toUpperCase());
+      
+      let walletValue = 0;
+      let positionValue = 0;
+      
+      if (PORTFOLIO.holdings) {
+        for (const h of PORTFOLIO.holdings) {
+          if (openTokens.includes(h.token.toUpperCase())) {
+            // This is an open position - use live or current value from trade
+            const trade = TRADES.find(t => t.status === 'OPEN' && t.token.toUpperCase() === h.token.toUpperCase());
+            if (trade) {
+              positionValue += trade.currentValue || h.valueUsd || 0;
+            }
+          } else {
+            walletValue += h.valueUsd || 0;
+          }
+        }
+      }
+      
+      return walletValue + positionValue;
+    }
     
     // Cursor trail
     const cursorDot = document.getElementById('cursor-dot');
@@ -1620,6 +1755,9 @@
         console.warn('Journal fetch error:', e);
       }
       
+      // Fetch live prices for open positions
+      await updateLivePrices();
+      
       renderAll();
     }
     
@@ -1639,10 +1777,11 @@
     
     // Render all
     function renderAll() {
-      // Portfolio
+      // Portfolio - use calculated value including live position prices
       if (PORTFOLIO) {
-        document.getElementById('portfolio-value').textContent = '$' + PORTFOLIO.currentValue.toFixed(2);
-        const pnl = PORTFOLIO.currentValue - PORTFOLIO.initialCapital;
+        const totalValue = calculatePortfolioValue();
+        document.getElementById('portfolio-value').textContent = '$' + totalValue.toFixed(2);
+        const pnl = totalValue - PORTFOLIO.initialCapital;
         const pct = ((pnl / PORTFOLIO.initialCapital) * 100).toFixed(1);
         
         const changeEl = document.getElementById('portfolio-change');
@@ -1760,15 +1899,16 @@
           const pnlPct = typeof t.pnlPct === 'number' ? t.pnlPct : 0;
           
           if (t.status === 'OPEN') {
-            // Show current value and unrealized P&L for open positions
+            // Show current value and unrealized P&L for open positions (live-updated)
             const currentVal = t.currentValue || t.entry?.value || 0;
             const entryVal = t.entry?.value || 0;
             const unrealizedPnl = currentVal - entryVal;
             const unrealizedPct = entryVal > 0 ? ((unrealizedPnl / entryVal) * 100).toFixed(1) : 0;
+            const isLive = LIVE_PRICES[t.address] ? ' 🔴' : '';
             return `
               <div class="trade-item" data-idx="${i}">
                 <div class="trade-info">
-                  <span class="trade-token">${t.token}</span>
+                  <span class="trade-token">${t.token}${isLive}</span>
                   <span class="trade-meta">${t.entry.date} · $${currentVal.toFixed(2)} now</span>
                 </div>
                 <span class="trade-pnl ${unrealizedPnl >= 0 ? 'positive' : 'negative'}">
@@ -1865,8 +2005,17 @@
       const pnlPct = trade.pnlPct || 0;
       
       if (trade.status === 'OPEN') {
-        document.getElementById('modal-pnl').textContent = '-';
-        document.getElementById('modal-return').textContent = '-';
+        // Show live P&L for open positions
+        const currentVal = trade.currentValue || trade.entry?.value || 0;
+        const entryVal = trade.entry?.value || 0;
+        const unrealizedPnl = currentVal - entryVal;
+        const unrealizedPct = entryVal > 0 ? (unrealizedPnl / entryVal) * 100 : 0;
+        const isLive = LIVE_PRICES[trade.address] ? ' (live)' : '';
+        
+        document.getElementById('modal-pnl').textContent = (unrealizedPnl >= 0 ? '+' : '') + '$' + unrealizedPnl.toFixed(4) + isLive;
+        document.getElementById('modal-pnl').style.color = unrealizedPnl >= 0 ? 'var(--success)' : 'var(--danger)';
+        document.getElementById('modal-return').textContent = (unrealizedPct >= 0 ? '+' : '') + unrealizedPct.toFixed(2) + '%';
+        document.getElementById('modal-return').style.color = unrealizedPct >= 0 ? 'var(--success)' : 'var(--danger)';
       } else {
         document.getElementById('modal-pnl').textContent = (pnl >= 0 ? '+' : '') + '$' + pnl.toFixed(4);
         document.getElementById('modal-pnl').style.color = pnl >= 0 ? 'var(--success)' : 'var(--danger)';
@@ -1901,7 +2050,8 @@
     
     // Init
     fetchData();
-    setInterval(fetchData, 5 * 60 * 1000);
+    // Refresh data every 60 seconds for live price updates
+    setInterval(fetchData, 60 * 1000);
   </script>
 </body>
 </html>
