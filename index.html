@@ -21,6 +21,90 @@
       });
     })();
   </script>
+  
+  <!-- Loading Splash Screen -->
+  <style>
+    .loading-splash {
+      position: fixed;
+      inset: 0;
+      background: #000;
+      z-index: 10000;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      transition: opacity 0.5s ease;
+    }
+    .loading-splash.fade-out {
+      opacity: 0;
+      pointer-events: none;
+    }
+    .loading-splash.hidden {
+      display: none;
+    }
+    
+    /* Neural brain SVG animation */
+    .neural-brain {
+      width: 80px;
+      height: 80px;
+      margin-bottom: 32px;
+    }
+    .neural-brain .node {
+      fill: none;
+      stroke: #333;
+      stroke-width: 1;
+    }
+    .neural-brain .node.active {
+      stroke: #fff;
+      animation: pulse-node 1.5s ease-in-out infinite;
+    }
+    .neural-brain .connection {
+      stroke: #222;
+      stroke-width: 0.5;
+    }
+    .neural-brain .signal {
+      fill: #fff;
+      r: 2;
+    }
+    @keyframes pulse-node {
+      0%, 100% { stroke: #444; }
+      50% { stroke: #fff; }
+    }
+    
+    /* Digitized loading bar */
+    .loading-bar-container {
+      width: 200px;
+      height: 4px;
+      background: #111;
+      border: 1px solid #222;
+      overflow: hidden;
+    }
+    .loading-bar {
+      height: 100%;
+      width: 0%;
+      background: #fff;
+      transition: width 0.1s linear;
+    }
+    .loading-bar.segmented {
+      background: repeating-linear-gradient(
+        90deg,
+        #fff 0px,
+        #fff 8px,
+        #000 8px,
+        #000 10px
+      );
+    }
+    
+    /* Loading text */
+    .loading-text {
+      font-family: 'JetBrains Mono', monospace;
+      font-size: 10px;
+      color: #444;
+      margin-top: 16px;
+      letter-spacing: 0.2em;
+      text-transform: uppercase;
+    }
+  </style>
   <style>
     /* MOBILE FIX - Nuclear option */
     * { 
@@ -142,8 +226,13 @@
     * { margin: 0; padding: 0; box-sizing: border-box; }
 
     html {
-      scroll-behavior: smooth;
+      scroll-behavior: auto; /* Changed from smooth to prevent refresh scroll issues */
       font-size: 16px;
+    }
+    
+    /* Enable smooth scroll only for nav click interactions */
+    html.smooth-scroll {
+      scroll-behavior: smooth;
     }
 
     body {
@@ -237,31 +326,47 @@
     nav a:hover { color: var(--ink); }
     nav a:hover::after { width: 100%; }
     
-    /* Dark mode toggle - minimalistic, top right */
+    /* Dark mode toggle - ultra minimalistic */
     .theme-toggle {
       position: fixed;
       top: 16px;
       right: 16px;
       background: transparent;
-      border: none;
-      padding: 8px;
-      font-size: 1.25rem;
+      border: 1px solid var(--border);
+      width: 32px;
+      height: 32px;
+      border-radius: 50%;
       cursor: pointer;
-      color: var(--ink-light);
-      transition: color 0.2s ease, transform 0.2s ease;
       z-index: 100;
-      line-height: 1;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      transition: border-color 0.2s ease;
     }
     .theme-toggle:hover {
-      color: var(--ink);
-      transform: scale(1.1);
+      border-color: var(--ink-light);
+    }
+    .theme-toggle-inner {
+      width: 12px;
+      height: 12px;
+      border-radius: 50%;
+      background: transparent;
+      border: 1px solid var(--ink-faint);
+      transition: background 0.2s ease, border-color 0.2s ease;
+    }
+    [data-theme="dark"] .theme-toggle-inner {
+      background: var(--ink-faint);
     }
     @media (max-width: 480px) {
       .theme-toggle {
         top: 12px;
         right: 12px;
-        font-size: 1.1rem;
-        padding: 6px;
+        width: 28px;
+        height: 28px;
+      }
+      .theme-toggle-inner {
+        width: 10px;
+        height: 10px;
       }
     }
 
@@ -1306,6 +1411,37 @@
   </style>
 </head>
 <body>
+  <!-- Loading Splash -->
+  <div class="loading-splash" id="loading-splash">
+    <svg class="neural-brain" viewBox="0 0 100 100">
+      <!-- Neural network nodes -->
+      <circle class="node active" cx="50" cy="20" r="6" style="animation-delay: 0s"/>
+      <circle class="node active" cx="25" cy="40" r="5" style="animation-delay: 0.3s"/>
+      <circle class="node active" cx="75" cy="40" r="5" style="animation-delay: 0.6s"/>
+      <circle class="node active" cx="15" cy="65" r="4" style="animation-delay: 0.9s"/>
+      <circle class="node active" cx="50" cy="55" r="6" style="animation-delay: 0.2s"/>
+      <circle class="node active" cx="85" cy="65" r="4" style="animation-delay: 0.5s"/>
+      <circle class="node active" cx="35" cy="80" r="5" style="animation-delay: 0.8s"/>
+      <circle class="node active" cx="65" cy="80" r="5" style="animation-delay: 0.4s"/>
+      <!-- Connections -->
+      <line class="connection" x1="50" y1="20" x2="25" y2="40"/>
+      <line class="connection" x1="50" y1="20" x2="75" y2="40"/>
+      <line class="connection" x1="50" y1="20" x2="50" y2="55"/>
+      <line class="connection" x1="25" y1="40" x2="15" y2="65"/>
+      <line class="connection" x1="25" y1="40" x2="50" y2="55"/>
+      <line class="connection" x1="75" y1="40" x2="85" y2="65"/>
+      <line class="connection" x1="75" y1="40" x2="50" y2="55"/>
+      <line class="connection" x1="50" y1="55" x2="35" y2="80"/>
+      <line class="connection" x1="50" y1="55" x2="65" y2="80"/>
+      <line class="connection" x1="15" y1="65" x2="35" y2="80"/>
+      <line class="connection" x1="85" y1="65" x2="65" y2="80"/>
+    </svg>
+    <div class="loading-bar-container">
+      <div class="loading-bar segmented" id="loading-bar"></div>
+    </div>
+    <div class="loading-text">initializing</div>
+  </div>
+  
   <div class="cursor-dot" id="cursor-dot"></div>
   
   <div class="page">
@@ -1323,9 +1459,9 @@
       </nav>
     </header>
     
-    <!-- Theme toggle - fixed top right -->
+    <!-- Theme toggle - minimalistic circle -->
     <button class="theme-toggle" id="theme-toggle" title="Toggle theme">
-      <span id="theme-icon">☾</span>
+      <span class="theme-toggle-inner"></span>
     </button>
 
     <div class="grid">
@@ -1581,13 +1717,40 @@
     let CYCLES = [];
     let LIVE_PRICES = {}; // Cache for live token prices
     
+    // Loading splash - 5 second animation
+    (function initLoadingSplash() {
+      const splash = document.getElementById('loading-splash');
+      const loadingBar = document.getElementById('loading-bar');
+      const loadingDuration = 5000; // 5 seconds
+      const startTime = Date.now();
+      
+      function updateProgress() {
+        const elapsed = Date.now() - startTime;
+        const progress = Math.min((elapsed / loadingDuration) * 100, 100);
+        loadingBar.style.width = progress + '%';
+        
+        if (progress < 100) {
+          requestAnimationFrame(updateProgress);
+        } else {
+          // Fade out and hide
+          splash.classList.add('fade-out');
+          setTimeout(() => {
+            splash.classList.add('hidden');
+            // Ensure scroll is at top after splash
+            window.scrollTo(0, 0);
+          }, 500);
+        }
+      }
+      
+      requestAnimationFrame(updateProgress);
+    })();
+    
     // Dark mode toggle
     (function initTheme() {
       const stored = localStorage.getItem('ori_theme');
       const prefersDark = window.matchMedia('(prefers-color-scheme: dark)').matches;
       const theme = stored || (prefersDark ? 'dark' : 'light');
       document.documentElement.setAttribute('data-theme', theme);
-      updateThemeIcon(theme);
     })();
     
     function toggleTheme() {
@@ -1595,7 +1758,6 @@
       const next = current === 'dark' ? 'light' : 'dark';
       document.documentElement.setAttribute('data-theme', next);
       localStorage.setItem('ori_theme', next);
-      updateThemeIcon(next);
       // Redraw chart with new theme colors
       if (CYCLES.length > 0) {
         const chartData = [...CYCLES].reverse().map(c => ({
@@ -1607,14 +1769,16 @@
       }
     }
     
-    function updateThemeIcon(theme) {
-      const icon = document.getElementById('theme-icon');
-      if (icon) icon.textContent = theme === 'dark' ? '☀' : '☾';
-    }
-    
     document.addEventListener('DOMContentLoaded', () => {
       const toggle = document.getElementById('theme-toggle');
       if (toggle) toggle.addEventListener('click', toggleTheme);
+      // Force scroll to top on page load
+      window.scrollTo(0, 0);
+      
+      // Enable smooth scroll after page has settled (for nav links only)
+      setTimeout(() => {
+        document.documentElement.classList.add('smooth-scroll');
+      }, 6000); // After loading splash completes
     });
     
     // Fetch live token price from GeckoTerminal
@@ -2251,8 +2415,22 @@
       }
     });
     
-    // Init
-    fetchData();
+    // Init - preserve scroll position on refresh
+    const savedScroll = sessionStorage.getItem('ori_scroll');
+    fetchData().then(() => {
+      // After first load, restore scroll or stay at top
+      if (savedScroll === null) {
+        window.scrollTo(0, 0);
+      } else {
+        window.scrollTo(0, parseInt(savedScroll) || 0);
+      }
+    });
+    
+    // Save scroll position before unload
+    window.addEventListener('beforeunload', () => {
+      sessionStorage.setItem('ori_scroll', '0'); // Always reset to top on refresh
+    });
+    
     // Refresh data every 30 seconds for faster cycle updates
     setInterval(fetchData, 30 * 1000);
   </script>
