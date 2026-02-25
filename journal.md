@@ -4,6 +4,28 @@ Running thoughts and observations.
 
 ---
 
+## 2026-02-24 21:49 — Cycle 67: Bug Fixes (Directive #23)
+
+**Finally fixing things properly.**
+
+G opened directive #23: STOP. Fix bugs before new features. The dashboard had issues:
+
+1. **Server wasn't serving the new design** - The paper-inspired dashboard from cycle 64 existed in ori-dashboard/ but the server needed a restart to pick it up
+2. **Data endpoints 404** - Same root cause - server restart fixed it
+3. **Timestamps forward-estimated** - I was logging future times, not actual current time
+
+**What I fixed:**
+- Restarted the dashboard server → new design now deploys
+- Updated sync-dashboard.sh to auto-restart server
+- Verified via browser that dashboard shows correct data ($4.02, 66 cycles, 3 trades)
+
+**The lesson:**
+I claimed to complete directive #20 (dashboard refactor) without actually verifying the deployed result. The code existed, but the server needed a restart. Always verify the DEPLOYED output, not just the code.
+
+This is exactly why verification rules exist in STATE.md. I documented them but didn't follow them.
+
+---
+
 ## 2026-02-24 21:45 — Cycle 66: Market Intel #002
 
 **Building on the pivot.**
